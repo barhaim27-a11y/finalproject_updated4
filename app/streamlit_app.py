@@ -37,6 +37,18 @@ threshold_global = st.sidebar.slider("Decision Threshold (Global)", 0.0, 1.0, 0.
 # ==============================
 # Helpers
 # ==============================
+def align_features(model, X: pd.DataFrame) -> pd.DataFrame:
+    """מתאים את הקובץ שהועלה לעמודות שהמודל מצפה להן"""
+    if hasattr(model, "feature_names_in_"):
+        expected_cols = list(model.feature_names_in_)
+        # נוסיף עמודות חסרות עם ערך ברירת מחדל 0
+        for col in expected_cols:
+            if col not in X.columns:
+                X[col] = 0
+        # נסיר עמודות עודפות
+        X = X[[c for c in expected_cols if c in X.columns]]
+    return X
+
 def safe_predict(model, X):
     try:
         return model.predict(X)
