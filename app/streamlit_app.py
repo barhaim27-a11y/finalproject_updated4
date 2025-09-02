@@ -414,22 +414,22 @@ for m in chosen_models:
     df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
     st.dataframe(df_comp_display)
 
-        st.subheader("ROC Curves")
-        fig = go.Figure()
-        for m, model in trained_models.items():
-            y_proba = model.predict_proba(X_test)[:,1]
-            fpr, tpr, _ = roc_curve(y_test, y_proba)
-            fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
-        fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
-        st.plotly_chart(fig, use_container_width=True)
+    st.subheader("ROC Curves")
+    fig = go.Figure()
+    for m, model in trained_models.items():
+        y_proba = model.predict_proba(X_test)[:,1]
+        fpr, tpr, _ = roc_curve(y_test, y_proba)
+        fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
+    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+    st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("Precision-Recall Curves")
-        fig = go.Figure()
-        for m, model in trained_models.items():
-            y_proba = model.predict_proba(X_test)[:,1]
-            prec, rec, _ = precision_recall_curve(y_test, y_proba)
-            fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
-        st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Precision-Recall Curves")
+    fig = go.Figure()
+    for m, model in trained_models.items():
+        y_proba = model.predict_proba(X_test)[:,1]
+        prec, rec, _ = precision_recall_curve(y_test, y_proba)
+        fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
+    st.plotly_chart(fig, use_container_width=True)
       
 
 # --- Tab 3: Models
