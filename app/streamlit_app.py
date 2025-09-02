@@ -412,7 +412,7 @@ with tab3:
                 st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
                 
 # --- Tab 5: Test Evaluation
-with tab4:
+with tab5:
     st.header("🧪 Model Evaluation on External Test Set")
 
     file = st.file_uploader("Upload Test Set (CSV with 'status' column)", type=["csv"], key="testset")
