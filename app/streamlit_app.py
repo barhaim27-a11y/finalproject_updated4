@@ -153,14 +153,18 @@ metrics = st.session_state.metrics
 # ==============================
 # Tabs
 # ==============================
-tab1, tab_dash, tab2, tab3, tab5, tab4 = st.tabs([
+tab1, tab_dash, tab2, tab3, tab5, tab4, tab_hist, tab_explain, tab_about = st.tabs([
     "📊 Data & EDA", 
     "📈 Dashboard",
     "🤖 Models", 
     "🔮 Prediction", 
     "🧪 Test Evaluation",
-    "⚡ Train New Model"
+    "⚡ Train New Model",
+    "🕑 Model History",
+    "🧠 Explainability",
+    "ℹ️ About"
 ])
+
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
@@ -706,3 +710,56 @@ with tab4:
                     st.success("✅ New model promoted as best model!")
             else:
                 st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
+
+# --- Tab 7: Model History
+with tab_hist:
+    st.header("🕑 Model History")
+    hist_file = "assets/model_history.csv"
+    if os.path.exists(hist_file):
+        hist_df = pd.read_csv(hist_file)
+        st.dataframe(hist_df)
+        if st.button("🔙 Rollback Last Model"):
+            if len(hist_df)>1:
+                prev_model = hist_df.iloc[-2]["model_path"]
+                best_model = joblib.load(prev_model)
+                st.session_state.best_model = best_model
+                st.success("✅ Rolled back to previous model")
+    else:
+        st.info("No model history found yet.")
+
+# --- Tab 8: Explainability
+with tab_explain:
+    st.header("🧠 Model Explainability")
+    if hasattr(best_model,"feature_importances_"):
+        fi = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
+        st.bar_chart(fi)
+    try:
+        explainer = shap.Explainer(best_model, X)
+        shap_values = explainer(X)
+        st.write("SHAP Summary Plot")
+        fig, ax = plt.subplots()
+        shap.summary_plot(shap_values, X, show=False)
+        st.pyplot(fig)
+    except Exception as e:
+        st.warning(f"SHAP not available: {e}")
+
+# --- Tab 9: About
+with tab_about:
+    st.header("ℹ️ About")
+    st.markdown("""
+    **Parkinson’s ML App**  
+    This app demonstrates prediction and evaluation of Parkinson’s disease using ML models.  
+    Features: EDA, Model Training, Comparison, Prediction, Evaluation, Explainability, History, Export to PDF.  
+    """)
+
+    if st.button("📄 Download PDF Report"):
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        pdf_buffer = io.BytesIO()
+        c = canvas.Canvas(pdf_buffer, pagesize=letter)
+        c.drawString(100, 750, "Parkinson’s ML Report")
+        c.drawString(100, 730, f"Rows: {df.shape[0]}, Cols: {df.shape[1]}")
+        c.save()
+        pdf_buffer.seek(0)
+        st.download_button("Download PDF", data=pdf_buffer, file_name="report.pdf", mime="application/pdf")
+
