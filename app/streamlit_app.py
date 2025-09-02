@@ -727,7 +727,7 @@ with tab_hist:
     else:
         st.info("No model history found yet.")
 
-# --- Tab 8: Explainability
+# --- Tab 8: Explain
 with tab_explain:
     st.header("🧠 Model Explainability")
 
