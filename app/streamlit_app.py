@@ -496,21 +496,21 @@ with tab4:
         default=["RandomForest","XGBoost"]
     )
 
-    # ✅ פרמטרים לכל מודל (כמו בדאשבורד)
+    # ✅ פרמטרים לכל מודל (keys ייחודיים)
     params = {}
     if "RandomForest" in model_choices:
         params["RandomForest"] = {
-            "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50),
-            "max_depth": st.slider("RF: Max Depth", 2, 20, 5)
+            "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_train"),
+            "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_train")
         }
     if "XGBoost" in model_choices:
         params["XGBoost"] = {
-            "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01),
-            "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50)
+            "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_train"),
+            "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_train")
         }
     if "SVM" in model_choices:
         params["SVM"] = {
-            "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1)
+            "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_train")
         }
 
     # ✅ קובץ דאטה חדש
@@ -548,17 +548,29 @@ with tab4:
                         random_state=42
                     )
                 elif m == "SVM":
-                    model = Pipeline([("scaler", StandardScaler()), ("clf", SVC(C=params[m]["C"], probability=True, kernel="rbf"))])
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", SVC(C=params[m]["C"], probability=True, kernel="rbf"))
+                    ])
                 elif m == "LogisticRegression":
-                    model = Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(max_iter=500))])
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", LogisticRegression(max_iter=500))
+                    ])
                 elif m == "KNN":
-                    model = Pipeline([("scaler", StandardScaler()), ("clf", KNeighborsClassifier(n_neighbors=5))])
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", KNeighborsClassifier(n_neighbors=5))
+                    ])
                 elif m == "LightGBM":
                     model = lgb.LGBMClassifier(random_state=42)
                 elif m == "CatBoost":
                     model = CatBoostClassifier(verbose=0, random_state=42)
                 elif m == "NeuralNet":
-                    model = Pipeline([("scaler", StandardScaler()), ("clf", MLPClassifier(hidden_layer_sizes=(64,32), max_iter=500, random_state=42))])
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", MLPClassifier(hidden_layer_sizes=(64,32), max_iter=500, random_state=42))
+                    ])
                 else:
                     continue
 
@@ -581,7 +593,7 @@ with tab4:
                     "roc_auc": auc_val
                 }
 
-            # 🟢 שמירה ב־session_state לשימוש בטאבים אחרים
+            # 🟢 שמירה ב־session_state
             st.session_state.trained_models = trained_models
 
             # 🟢 תוצאות
@@ -592,7 +604,7 @@ with tab4:
             df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
             st.dataframe(df_comp_display)
 
-            # 🟢 השוואה מול המודל הישן (Best Model שנשמר)
+            # 🟢 השוואה מול המודל הישן
             st.subheader("📈 Comparison with Old Best Model")
             y_pred_old = safe_predict(best_model, X_test)
             y_proba_old = safe_predict_proba(best_model, X_test)[:, 1]
@@ -611,8 +623,14 @@ with tab4:
             for m in df_comp.index:
                 y_proba_new = trained_models[m].predict_proba(X_test)[:, 1]
                 fpr_new, tpr_new, _ = roc_curve(y_test, y_proba_new)
-                fig.add_trace(go.Scatter(x=fpr_new, y=tpr_new, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
-            fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+                fig.add_trace(go.Scatter(
+                    x=fpr_new, y=tpr_new, mode="lines",
+                    name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"
+                ))
+            fig.add_trace(go.Scatter(
+                x=[0,1], y=[0,1], mode="lines",
+                line=dict(dash="dash"), name="Random"
+            ))
             st.plotly_chart(fig, use_container_width=True)
 
             # 🟢 Promote option
