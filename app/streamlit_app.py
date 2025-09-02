@@ -715,33 +715,33 @@ params = {}
 
 if "LogisticRegression" in chosen_models:
     params["LogisticRegression"] = {
-        "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_dash"),
-        "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_dash")
+        "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_train"),
+        "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_train")
     }
 
 if "RandomForest" in chosen_models:
     params["RandomForest"] = {
-        "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_dash"),
-        "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_dash"),
-        "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_dash"),
-        "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_dash")
+        "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_train"),
+        "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_train"),
+        "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_train"),
+        "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_train")
     }
 
 if "XGBoost" in chosen_models:
     params["XGBoost"] = {
-        "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_dash"),
-        "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_dash"),
-        "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_dash"),
-        "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_dash"),
-        "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_dash")
+        "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_train"),
+        "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_train"),
+        "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_train"),
+        "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_train"),
+        "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_train")
     }
 
 if "LightGBM" in chosen_models:
     params["LightGBM"] = {
-        "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_dash"),
-        "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_dash"),
-        "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_dash"),
-        "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_dash")
+        "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_train"),
+        "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_train"),
+        "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_train"),
+        "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_train")
     }
 
 if "CatBoost" in chosen_models:
@@ -766,9 +766,9 @@ if "KNN" in chosen_models:
 
 if "NeuralNet" in chosen_models:
     params["NeuralNet"] = {
-        "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_dash"),
-        "activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_dash"),
-        "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
+        "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_train"),
+        "activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_train"),
+        "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_train")
     }
 
     # ✅ קובץ דאטה חדש
