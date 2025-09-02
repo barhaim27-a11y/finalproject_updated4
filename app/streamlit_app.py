@@ -1,4 +1,3 @@
-# app/streamlit_app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,8 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib, os, runpy, json, io, shutil
 
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc, precision_recall_curve
 
 st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="wide")
@@ -43,23 +40,16 @@ def decision_text(prob, threshold=0.5):
     decision = "Positive (Parkinson’s)" if prob >= threshold else "Negative (Healthy)"
     return f"ההסתברות היא {prob*100:.1f}%, הסיווג עם הסף {threshold:.2f} הוא {decision}"
 
-def export_fig(fig):
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight")
-    return buf
-
 # ==============================
 # Load dataset
 # ==============================
 DATA_PATH = "data/parkinsons.csv"
 df = pd.read_csv(DATA_PATH)
-if "name" in df.columns:
-    df = df.drop(columns=["name"])
 X = df.drop("status", axis=1)
 y = df["status"]
 
 # ==============================
-# Load model + metrics once
+# Load model + metrics
 # ==============================
 def load_model_and_metrics():
     if not os.path.exists("models/best_model.joblib") or not os.path.exists("assets/metrics.json"):
@@ -88,55 +78,44 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
-    st.write("### Dataset Preview")
+
+    st.subheader("Dataset Preview")
     st.dataframe(df.head())
-    st.download_button("📥 Download Dataset (CSV)", df.to_csv(index=False).encode("utf-8"), "dataset.csv", "text/csv")
 
-    st.write("### Statistical Summary")
-    st.dataframe(df.describe().T)
+    # --- הצגת גרפים מוכנים מתיקיית eda/ ---
+    st.subheader("Exploratory Plots")
+    eda_dir = "eda"
+    eda_plots = {
+        "Target Distribution (Count & Pie)": "target_distribution_combo.png",
+        "Correlation Heatmap": "corr_heatmap.png",
+        "Pairplot of Top Features": "pairplot_top_features.png",
+        "Histograms & Violin Plots": "distributions_violin.png",
+        "PCA Projection": "pca.png",
+        "t-SNE Projection": "tsne.png"
+    }
 
-    st.write("### Target Distribution")
-    fig, ax = plt.subplots()
-    sns.countplot(x="status", data=df, palette="Set2", ax=ax)
-    st.pyplot(fig)
-
-    st.write("### Correlation Heatmap")
-    fig, ax = plt.subplots(figsize=(10,8))
-    sns.heatmap(df.corr(), cmap="coolwarm", center=0, ax=ax)
-    st.pyplot(fig)
-
-    st.write("### PCA Visualization")
-    pca = PCA(n_components=2)
-    X_pca = pca.fit_transform(X)
-    fig, ax = plt.subplots()
-    ax.scatter(X_pca[:,0], X_pca[:,1], c=y, cmap="coolwarm", alpha=0.7)
-    ax.set_title("PCA Projection")
-    st.pyplot(fig)
-
-    st.write("### t-SNE Visualization (sampled)")
-    sample_size = min(300, len(X))
-    X_sample = X.sample(sample_size, random_state=42)
-    y_sample = y.loc[X_sample.index]
-    tsne = TSNE(n_components=2, random_state=42, perplexity=30, max_iter=500)
-    X_tsne = tsne.fit_transform(X_sample)
-    fig, ax = plt.subplots()
-    ax.scatter(X_tsne[:,0], X_tsne[:,1], c=y_sample, cmap="coolwarm", alpha=0.7)
-    ax.set_title("t-SNE Projection (sample of 300)")
-    st.pyplot(fig)
+    for title, filename in eda_plots.items():
+        path = os.path.join(eda_dir, filename)
+        if os.path.exists(path):
+            with st.expander(title, expanded=True):
+                st.image(path, use_column_width=True)
 
 # --- Tab 2: Models
 with tab2:
     st.header("🤖 Model Training & Comparison")
+
     df_metrics = pd.DataFrame(metrics).T.reset_index().rename(columns={"index":"Model"})
     st.dataframe(df_metrics)
 
     # KPIs
     cols = st.columns(5)
     for i, k in enumerate(["accuracy","precision","recall","f1","roc_auc"]):
-        cols[i].metric(k.capitalize(), f"{df_metrics.iloc[0][k]:.3f}")
+        if k in df_metrics.columns:
+            cols[i].metric(k.capitalize(), f"{df_metrics.iloc[0][k]:.3f}")
 
     # Bar chart
-    st.bar_chart(df_metrics.set_index("Model")["roc_auc"])
+    if "roc_auc" in df_metrics.columns:
+        st.bar_chart(df_metrics.set_index("Model")["roc_auc"])
 
     # Best Model
     best_name = df_metrics.sort_values("roc_auc", ascending=False).iloc[0]["Model"]
