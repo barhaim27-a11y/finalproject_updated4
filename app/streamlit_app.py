@@ -732,7 +732,7 @@ with tab_explain:
     st.header("🧠 Model Explainability")
 
     try:
-        # Feature Importance – אם קיים feature_importances_
+        # 🔹 Feature Importance (למודלים שתומכים בזה)
         if hasattr(best_model, "feature_importances_"):
             st.subheader("🔹 Feature Importance")
             fi = pd.DataFrame({
@@ -743,7 +743,7 @@ with tab_explain:
             fig = px.bar(fi, x="Importance", y="Feature", orientation="h", title="Feature Importance")
             st.plotly_chart(fig, use_container_width=True)
 
-        # SHAP – ננסה לחשב רק אם המודל נתמך
+        # 🔹 SHAP (אם נתמך)
         st.subheader("🔹 SHAP Summary Plot")
         import shap
         explainer = shap.Explainer(best_model, X)
@@ -755,6 +755,14 @@ with tab_explain:
 
     except Exception as e:
         st.warning(f"SHAP not available: {e}")
+
+        # ✅ Fallback: קורלציה פשוטה עם המטרה
+        st.subheader("🔹 Correlation with Target (Fallback)")
+        corr = df.corr()["status"].drop("status").sort_values(ascending=False)
+        corr_df = corr.reset_index().rename(columns={"index": "Feature", "status": "Correlation"})
+        fig = px.bar(corr_df, x="Correlation", y="Feature", orientation="h", title="Correlation with Target")
+        st.plotly_chart(fig, use_container_width=True)
+
 
 
 
