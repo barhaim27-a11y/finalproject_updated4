@@ -718,67 +718,67 @@ with tab4:
         default=["RandomForest","XGBoost"]
     )
 
-    # ✅ פרמטרים לכל מודל (keys ייחודיים)
-st.subheader("⚙️ Hyperparameters")
-params = {}
+    # ✅ פרמטרים לכל מודל (keys ייחודיים ללשונית הזאת)
+    st.subheader("⚙️ Hyperparameters")
+    params = {}
 
-if "LogisticRegression" in chosen_models:
-    params["LogisticRegression"] = {
-        "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_train"),
-        "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_train")
-    }
+    if "LogisticRegression" in model_choices:
+        params["LogisticRegression"] = {
+            "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_train"),
+            "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_train")
+        }
 
-if "RandomForest" in chosen_models:
-    params["RandomForest"] = {
-        "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_train"),
-        "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_train"),
-        "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_train"),
-        "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_train")
-    }
+    if "RandomForest" in model_choices:
+        params["RandomForest"] = {
+            "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_train"),
+            "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_train"),
+            "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_train"),
+            "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_train")
+        }
 
-if "XGBoost" in chosen_models:
-    params["XGBoost"] = {
-        "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_train"),
-        "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_train"),
-        "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_train"),
-        "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_train"),
-        "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_train")
-    }
+    if "XGBoost" in model_choices:
+        params["XGBoost"] = {
+            "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_train"),
+            "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_train"),
+            "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_train"),
+            "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_train"),
+            "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_train")
+        }
 
-if "LightGBM" in chosen_models:
-    params["LightGBM"] = {
-        "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_train"),
-        "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_train"),
-        "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_train"),
-        "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_train")
-    }
+    if "LightGBM" in model_choices:
+        params["LightGBM"] = {
+            "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_train"),
+            "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_train"),
+            "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_train"),
+            "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_train")
+        }
 
-if "CatBoost" in chosen_models:
-    params["CatBoost"] = {
-        "iterations": st.slider("CatBoost: Iterations", 100, 2000, 500, 100, key="cat_iters_train"),
-        "depth": st.slider("CatBoost: Depth", 2, 12, 6, key="cat_depth_train"),
-        "learning_rate": st.slider("CatBoost: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="cat_lr_train")
-    }
+    if "CatBoost" in model_choices:
+        params["CatBoost"] = {
+            "iterations": st.slider("CatBoost: Iterations", 100, 2000, 500, 100, key="cat_iters_train"),
+            "depth": st.slider("CatBoost: Depth", 2, 12, 6, key="cat_depth_train"),
+            "learning_rate": st.slider("CatBoost: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="cat_lr_train")
+        }
 
-if "SVM" in chosen_models:
-    params["SVM"] = {
-        "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_train"),
-        "kernel": st.selectbox("SVM: Kernel", ["rbf", "linear", "poly"], index=0, key="svm_kernel_train"),
-        "gamma": st.selectbox("SVM: Gamma", ["scale", "auto"], index=0, key="svm_gamma_train")
-    }
+    if "SVM" in model_choices:
+        params["SVM"] = {
+            "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_train"),
+            "kernel": st.selectbox("SVM: Kernel", ["rbf", "linear", "poly"], index=0, key="svm_kernel_train"),
+            "gamma": st.selectbox("SVM: Gamma", ["scale", "auto"], index=0, key="svm_gamma_train")
+        }
 
-if "KNN" in chosen_models:
-    params["KNN"] = {
-        "n_neighbors": st.slider("KNN: Neighbors", 1, 20, 5, key="knn_neighbors_train"),
-        "weights": st.selectbox("KNN: Weights", ["uniform", "distance"], index=0, key="knn_weights_train")
-    }
+    if "KNN" in model_choices:
+        params["KNN"] = {
+            "n_neighbors": st.slider("KNN: Neighbors", 1, 20, 5, key="knn_neighbors_train"),
+            "weights": st.selectbox("KNN: Weights", ["uniform", "distance"], index=0, key="knn_weights_train")
+        }
 
-if "NeuralNet" in chosen_models:
-    params["NeuralNet"] = {
-        "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_train"),
-        "activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_train"),
-        "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_train")
-    }
+    if "NeuralNet" in model_choices:
+        params["NeuralNet"] = {
+            "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_train"),
+            "activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_train"),
+            "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_train")
+        }
 
     # ✅ קובץ דאטה חדש
     file = st.file_uploader("Upload CSV for retraining", type=["csv"], key="newtrain")
@@ -798,146 +798,148 @@ if "NeuralNet" in chosen_models:
 
             trained_models = {}
             metrics_comp = {}
-            # 🟢 נאמן את כל המודלים שבחר המשתמש
-    for m in model_choices:
-        if m == "LogisticRegression":
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", LogisticRegression(
-                    C=params[m]["C"],
-                    max_iter=params[m]["max_iter"]
-                ))
-            ])
-        elif m == "RandomForest":
-            model = RandomForestClassifier(
-                n_estimators=params[m]["n_estimators"],
-                max_depth=params[m]["max_depth"],
-                min_samples_split=params[m]["min_samples_split"],
-                min_samples_leaf=params[m]["min_samples_leaf"],
-                random_state=42
-            )
-        elif m == "XGBoost":
-            model = xgb.XGBClassifier(
-                eval_metric="logloss",
-                n_estimators=params[m]["n_estimators"],
-                learning_rate=params[m]["learning_rate"],
-                max_depth=params[m]["max_depth"],
-                subsample=params[m]["subsample"],
-                colsample_bytree=params[m]["colsample_bytree"],
-                random_state=42
-            )
-        elif m == "LightGBM":
-            model = lgb.LGBMClassifier(
-                n_estimators=params[m]["n_estimators"],
-                learning_rate=params[m]["learning_rate"],
-                num_leaves=params[m]["num_leaves"],
-                max_depth=params[m]["max_depth"],
-                random_state=42
-            )
-        elif m == "CatBoost":
-            model = CatBoostClassifier(
-                iterations=params[m]["iterations"],
-                depth=params[m]["depth"],
-                learning_rate=params[m]["learning_rate"],
-                verbose=0,
-                random_state=42
-            )
-        elif m == "SVM":
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", SVC(
-                    C=params[m]["C"],
-                    kernel=params[m]["kernel"],
-                    gamma=params[m]["gamma"],
-                    probability=True
-                ))
-            ])
-        elif m == "KNN":
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", KNeighborsClassifier(
-                    n_neighbors=params[m]["n_neighbors"],
-                    weights=params[m]["weights"]
-                ))
-            ])
-        elif m == "NeuralNet":
-            hidden_layers = tuple(map(int, params[m]["hidden_layer_sizes"].split(",")))
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", MLPClassifier(
-                    hidden_layer_sizes=hidden_layers,
-                    activation=params[m]["activation"],
-                    max_iter=params[m]["max_iter"],
-                    random_state=42
-                ))
-            ])
-        else:
-            continue
-            # אימון והערכת ביצועים
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
-    
-    acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred)
-    rec = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    auc_val = roc_auc_score(y_test, y_proba)
 
-    trained_models[m] = model
-    metrics_comp[m] = {
-        "accuracy": acc,
-        "precision": prec,
-        "recall": rec,
-        "f1": f1,
-        "roc_auc": auc_val
-    }
-    # 🟢 שמירה ב־session_state
-    st.session_state.trained_models = trained_models
-    
-    # 🟢 תוצאות
-    st.subheader("📊 New Training Results")
-    df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
-    df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
-    df_comp_display = df_comp.copy()
-    df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
-    st.dataframe(df_comp_display)
-    
-    # 🟢 השוואה מול המודל הישן
-    st.subheader("📈 Comparison with Old Best Model")
-    y_pred_old = safe_predict(best_model, X_test)
-    y_proba_old = safe_predict_proba(best_model, X_test)[:, 1]
-    old_auc = roc_auc_score(y_test, y_proba_old)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Old Best ROC-AUC", f"{old_auc:.3f}")
-    with col2:
-        st.metric("New Best ROC-AUC", f"{df_comp['roc_auc'].iloc[0]:.3f}")
-        
-     # 🟢 ROC Curve comparison
-        fig = go.Figure()
-        fpr_old, tpr_old, _ = roc_curve(y_test, y_proba_old)
-        fig.add_trace(go.Scatter(x=fpr_old, y=tpr_old, mode="lines", name="Old Best"))
-        for m in df_comp.index:
-            y_proba_new = trained_models[m].predict_proba(X_test)[:, 1]
-            fpr_new, tpr_new, _ = roc_curve(y_test, y_proba_new)
-            fig.add_trace(go.Scatter(
-                x=fpr_new, y=tpr_new, mode="lines",
-                name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"
-            ))
+            # 🟢 לולאת אימון
+            for m in model_choices:
+                model = None
+
+                if m == "LogisticRegression":
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", LogisticRegression(
+                            C=params[m]["C"],
+                            max_iter=params[m]["max_iter"]
+                        ))
+                    ])
+                elif m == "RandomForest":
+                    model = RandomForestClassifier(
+                        n_estimators=params[m]["n_estimators"],
+                        max_depth=params[m]["max_depth"],
+                        min_samples_split=params[m]["min_samples_split"],
+                        min_samples_leaf=params[m]["min_samples_leaf"],
+                        random_state=42
+                    )
+                elif m == "XGBoost":
+                    model = xgb.XGBClassifier(
+                        eval_metric="logloss",
+                        n_estimators=params[m]["n_estimators"],
+                        learning_rate=params[m]["learning_rate"],
+                        max_depth=params[m]["max_depth"],
+                        subsample=params[m]["subsample"],
+                        colsample_bytree=params[m]["colsample_bytree"],
+                        random_state=42
+                    )
+                elif m == "LightGBM":
+                    model = lgb.LGBMClassifier(
+                        n_estimators=params[m]["n_estimators"],
+                        learning_rate=params[m]["learning_rate"],
+                        num_leaves=params[m]["num_leaves"],
+                        max_depth=params[m]["max_depth"],
+                        random_state=42
+                    )
+                elif m == "CatBoost":
+                    model = CatBoostClassifier(
+                        iterations=params[m]["iterations"],
+                        depth=params[m]["depth"],
+                        learning_rate=params[m]["learning_rate"],
+                        verbose=0,
+                        random_state=42
+                    )
+                elif m == "SVM":
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", SVC(
+                            C=params[m]["C"],
+                            kernel=params[m]["kernel"],
+                            gamma=params[m]["gamma"],
+                            probability=True
+                        ))
+                    ])
+                elif m == "KNN":
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", KNeighborsClassifier(
+                            n_neighbors=params[m]["n_neighbors"],
+                            weights=params[m]["weights"]
+                        ))
+                    ])
+                elif m == "NeuralNet":
+                    hidden_layers = tuple(map(int, params[m]["hidden_layer_sizes"].split(",")))
+                    model = Pipeline([
+                        ("scaler", StandardScaler()),
+                        ("clf", MLPClassifier(
+                            hidden_layer_sizes=hidden_layers,
+                            activation=params[m]["activation"],
+                            max_iter=params[m]["max_iter"],
+                            random_state=42
+                        ))
+                    ])
+
+                if model is not None:
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_test)
+                    y_proba = model.predict_proba(X_test)[:, 1]
+
+                    acc = accuracy_score(y_test, y_pred)
+                    prec = precision_score(y_test, y_pred)
+                    rec = recall_score(y_test, y_pred)
+                    f1 = f1_score(y_test, y_pred)
+                    auc_val = roc_auc_score(y_test, y_proba)
+
+                    trained_models[m] = model
+                    metrics_comp[m] = {
+                        "accuracy": acc,
+                        "precision": prec,
+                        "recall": rec,
+                        "f1": f1,
+                        "roc_auc": auc_val
+                    }
+
+            # 🟢 שמירה ב־session_state
+            st.session_state.trained_models = trained_models
+
+            # 🟢 תוצאות
+            st.subheader("📊 New Training Results")
+            df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+            df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+            df_comp_display = df_comp.copy()
+            df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+            st.dataframe(df_comp_display)
+
+            # 🟢 השוואה מול המודל הישן
+            st.subheader("📈 Comparison with Old Best Model")
+            y_pred_old = safe_predict(best_model, X_test)
+            y_proba_old = safe_predict_proba(best_model, X_test)[:, 1]
+            old_auc = roc_auc_score(y_test, y_proba_old)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Old Best ROC-AUC", f"{old_auc:.3f}")
+            with col2:
+                st.metric("New Best ROC-AUC", f"{df_comp['roc_auc'].iloc[0]:.3f}")
+
+            # 🟢 ROC Curve comparison
+            fig = go.Figure()
+            fpr_old, tpr_old, _ = roc_curve(y_test, y_proba_old)
+            fig.add_trace(go.Scatter(x=fpr_old, y=tpr_old, mode="lines", name="Old Best"))
+            for m in df_comp.index:
+                y_proba_new = trained_models[m].predict_proba(X_test)[:, 1]
+                fpr_new, tpr_new, _ = roc_curve(y_test, y_proba_new)
+                fig.add_trace(go.Scatter(
+                    x=fpr_new, y=tpr_new, mode="lines",
+                    name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"
+                ))
             fig.add_trace(go.Scatter(
                 x=[0,1], y=[0,1], mode="lines",
                 line=dict(dash="dash"), name="Random"
             ))
             st.plotly_chart(fig, use_container_width=True)
-            
+
             # 🟢 Promote option
             from datetime import datetime
-            # Update timestamp
             with open("assets/last_updated.txt", "w") as f:
                 f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-                
+
             best_new_model = df_comp.index[0]
             if df_comp["roc_auc"].iloc[0] > old_auc:
                 st.success(f"🎉 המודל החדש {best_new_model} עדיף על המודל הישן!")
@@ -945,10 +947,9 @@ if "NeuralNet" in chosen_models:
                     joblib.dump(trained_models[best_new_model], "models/best_model.joblib")
                     with open("assets/metrics.json","w") as f:
                         json.dump(metrics_comp, f)
-                        st.success("✅ New model promoted as best model!")
-                else:
-                    st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
-
+                    st.success("✅ New model promoted as best model!")
+            else:
+                st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
 
 # --- Tab 7: Model History
 with tab_hist:
