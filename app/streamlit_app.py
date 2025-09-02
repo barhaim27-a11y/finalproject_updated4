@@ -303,8 +303,7 @@ if "NeuralNet" in chosen_models:
 
         trained_models = {}
         metrics_comp = {}
-
-for m in chosen_models:
+    for m in chosen_models:
     if m == "LogisticRegression":
         model = Pipeline([
             ("scaler", StandardScaler()),
@@ -430,6 +429,8 @@ for m in chosen_models:
         prec, rec, _ = precision_recall_curve(y_test, y_proba)
         fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
     st.plotly_chart(fig, use_container_width=True)
+
+
       
 
 # --- Tab 3: Models
