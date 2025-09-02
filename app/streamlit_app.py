@@ -199,6 +199,7 @@ with tab1:
                 st.image(path, use_column_width=True)
 
 # --- Tab 2: Dashboard
+with st.spinner("🚀 Training models... This may take a while"):          
 with tab_dash:
     st.header("📈 Interactive Dashboard – Compare Models")
 
@@ -269,10 +270,6 @@ with tab_dash:
 
             trained_models[m] = model
             metrics_comp[m] = {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1, "roc_auc": auc_val}
-            with st.spinner("🚀 Training models... This may take a while"):
-            # כאן הקוד הקיים של האימון
-            st.success("✅ Training finished!")
-
 
         st.subheader("📊 Metrics Comparison")
         df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
@@ -297,6 +294,7 @@ with tab_dash:
             prec, rec, _ = precision_recall_curve(y_test, y_proba)
             fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
         st.plotly_chart(fig, use_container_width=True)
+        st.success("✅ Training finished!")
 
 # --- Tab 3: Models
 with tab2:
