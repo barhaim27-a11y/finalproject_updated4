@@ -271,7 +271,7 @@ with tab_dash:
             metrics_comp[m] = {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1, "roc_auc": auc_val}
             with st.spinner("🚀 Training models... This may take a while"):
             # כאן הקוד הקיים של האימון
-        st.success("✅ Training finished!")
+            st.success("✅ Training finished!")
 
 
         st.subheader("📊 Metrics Comparison")
