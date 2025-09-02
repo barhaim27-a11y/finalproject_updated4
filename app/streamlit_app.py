@@ -92,14 +92,14 @@ metrics = st.session_state.metrics
 # ==============================
 # Tabs
 # ==============================
-tab1, tab_dash, tab2, tab3, tab4 = st.tabs([
+tab1, tab_dash, tab2, tab3, tab5, tab4 = st.tabs([
     "📊 Data & EDA", 
     "📈 Dashboard",
     "🤖 Models", 
     "🔮 Prediction", 
+    "🧪 Test Evaluation",
     "⚡ Train New Model"
 ])
-
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
@@ -410,11 +410,73 @@ with tab3:
             new_df.to_excel("predictions.xlsx", index=False)
             with open("predictions.xlsx","rb") as f:
                 st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
-
-
-
-# --- Tab 5: Train New Model
+                
+# --- Tab 5: Test Evaluation
 with tab4:
+    st.header("🧪 Model Evaluation on External Test Set")
+
+    file = st.file_uploader("Upload Test Set (CSV with 'status' column)", type=["csv"], key="testset")
+    if file:
+        test_df = pd.read_csv(file)
+        if "status" not in test_df.columns:
+            st.error("❌ The test set must include a 'status' column with true labels (0=Healthy, 1=Parkinson’s).")
+        else:
+            X_test = test_df.drop("status", axis=1)
+            y_true = test_df["status"]
+
+            y_pred = safe_predict(best_model, X_test)
+            y_prob = safe_predict_proba(best_model, X_test)[:, 1]
+
+            # 📊 Metrics
+            acc = accuracy_score(y_true, y_pred)
+            prec = precision_score(y_true, y_pred)
+            rec = recall_score(y_true, y_pred)
+            f1 = f1_score(y_true, y_pred)
+            auc_val = roc_auc_score(y_true, y_prob)
+
+            st.subheader("📊 Metrics")
+            metrics_df = pd.DataFrame([{
+                "Accuracy": acc,
+                "Precision": prec,
+                "Recall": rec,
+                "F1 Score": f1,
+                "ROC-AUC": auc_val
+            }])
+            st.dataframe(metrics_df.style.format("{:.3f}"))
+
+            # Confusion Matrix
+            cm = confusion_matrix(y_true, y_pred)
+            fig = go.Figure(data=go.Heatmap(
+                z=cm,
+                x=["Predicted Healthy", "Predicted Parkinson’s"],
+                y=["True Healthy", "True Parkinson’s"],
+                colorscale="Blues",
+                text=cm, texttemplate="%{text}"
+            ))
+            fig.update_layout(title="Confusion Matrix")
+            st.plotly_chart(fig, use_container_width=True)
+
+            # ROC Curve
+            fpr, tpr, _ = roc_curve(y_true, y_prob)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"ROC curve (AUC={auc_val:.2f})"))
+            fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+            fig.update_layout(title="ROC Curve", xaxis_title="False Positive Rate", yaxis_title="True Positive Rate")
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Download results
+            test_df["Predicted"] = y_pred
+            test_df["Probability"] = y_prob
+            st.download_button("📥 Download Predictions (CSV)", test_df.to_csv(index=False).encode("utf-8"), "test_results.csv", "text/csv")
+
+            test_df.to_excel("test_results.xlsx", index=False)
+            with open("test_results.xlsx","rb") as f:
+                st.download_button("📥 Download Predictions (Excel)", f, "test_results.xlsx", "application/vnd.ms-excel")
+
+
+
+# --- Tab 6: Train New Model
+with tab5:
     st.header("⚡ Train New Model")
     model_choices = st.multiselect("Select Models", ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"], default=["RandomForest","XGBoost"])
     rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
