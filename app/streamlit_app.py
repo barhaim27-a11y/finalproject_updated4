@@ -323,7 +323,6 @@ with tab2:
     fig.update_layout(title=f"KS Curve (KS={ks_stat:.2f})", xaxis_title="Threshold", yaxis_title="Rate")
     st.plotly_chart(fig, use_container_width=True)
 
-
 # --- Tab 4: Prediction
 with tab3:
     st.header("🔮 Prediction")
@@ -338,9 +337,16 @@ with tab3:
     model = available_models[model_choice]
 
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
-    ...
-    # במקום לקרוא ל-best_model → נשתמש ב-model
-    prob = safe_predict_proba(model, sample)[0,1]
+
+    # --- Manual Input
+    if option == "Manual Input":
+        inputs = {col: st.number_input(col, float(X[col].mean())) for col in X.columns}
+        sample = pd.DataFrame([inputs])
+
+        if st.button("Predict Sample"):
+            prob = safe_predict_proba(model, sample)[0, 1]
+            pred = int(prob >= threshold)
+
             # תצוגה ידידותית
             st.subheader("🧾 Prediction Result")
             if pred == 1:
@@ -365,11 +371,11 @@ with tab3:
                 title={"text": "Probability of Parkinson’s"},
                 gauge={
                     "axis": {"range": [0, 100]},
-                    "bar": {"color": "red" if pred==1 else "green"},
+                    "bar": {"color": "red" if pred == 1 else "green"},
                     "steps": [
-                        {"range": [0,30], "color":"#e6ffe6"},
-                        {"range": [30,70], "color":"#fff5e6"},
-                        {"range": [70,100], "color":"#ffe6e6"}
+                        {"range": [0, 30], "color": "#e6ffe6"},
+                        {"range": [30, 70], "color": "#fff5e6"},
+                        {"range": [70, 100], "color": "#ffe6e6"}
                     ]
                 }
             ))
@@ -377,7 +383,7 @@ with tab3:
 
     # --- File Upload
     elif option == "Upload CSV/Excel":
-        file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
+        file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
         if file:
             if file.name.endswith(".csv"):
                 new_df = pd.read_csv(file)
@@ -387,7 +393,7 @@ with tab3:
             st.write("Preview of Uploaded Data:")
             st.dataframe(new_df.head())
 
-            probs = safe_predict_proba(best_model, new_df)[:,1]
+            probs = safe_predict_proba(model, new_df)[:, 1]
             preds = (probs >= threshold).astype(int)
             new_df["Probability"] = (probs*100).round(1)
             new_df["Prediction"] = preds
@@ -399,17 +405,28 @@ with tab3:
             ]
 
             st.subheader("📊 Prediction Summary")
-            summary = pd.Series(preds).value_counts().rename({0:"Healthy 🟢",1:"Parkinson’s 🔴"})
+            summary = pd.Series(preds).value_counts().rename({0: "Healthy 🟢", 1: "Parkinson’s 🔴"})
             st.table(summary)
 
             st.subheader("Detailed Results")
-            st.dataframe(new_df[["Result","Probability","Prediction"]].head(20))
+            st.dataframe(new_df[["Result", "Probability", "Prediction"]].head(20))
 
             # הורדות
-            st.download_button("📥 Download Predictions (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
+            st.download_button(
+                "📥 Download Predictions (CSV)",
+                new_df.to_csv(index=False).encode("utf-8"),
+                "predictions.csv",
+                "text/csv"
+            )
             new_df.to_excel("predictions.xlsx", index=False)
-            with open("predictions.xlsx","rb") as f:
-                st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
+            with open("predictions.xlsx", "rb") as f:
+                st.download_button(
+                    "📥 Download Predictions (Excel)",
+                    f,
+                    "predictions.xlsx",
+                    "application/vnd.ms-excel"
+                )
+
                 
 # --- Tab 5: Test Evaluation
 with tab5:
@@ -501,7 +518,6 @@ with tab4:
             with open("assets/metrics.json","r") as f:
                 new_metrics = json.load(f)
 
-            # ✅ שמירה להשוואה
             st.session_state.new_metrics = new_metrics
             st.session_state.new_best_model = joblib.load("models/best_model.joblib")
 
@@ -510,9 +526,9 @@ with tab4:
             comp_df = comp_df.sort_values("roc_auc", ascending=False)
             st.dataframe(comp_df.style.highlight_max(axis=0, color="lightgreen"))
 
-            # ✅ השוואה מול המודל הישן
-            old_auc = max(metrics.values(), key=lambda m: m["roc_auc"])["roc_auc"]
-            new_auc = max(new_metrics.values(), key=lambda m: m["roc_auc"])["roc_auc"]
+            # ✅ השוואה מול המודל הישן (תיקון!)
+            old_auc = max([m["roc_auc"] for m in metrics.values()])
+            new_auc = max([m["roc_auc"] for m in new_metrics.values()])
 
             col1, col2 = st.columns(2)
             with col1:
@@ -528,7 +544,7 @@ with tab4:
                         json.dump(new_metrics, f)
                     st.success("✅ New model promoted as best model!")
 
-            # ✅ גרף השוואת ROC
+            # ✅ ROC Curve comparison
             st.subheader("ROC Curve – Old vs New Best Model")
             y_pred_prob_old = safe_predict_proba(best_model, X)[:,1]
             y_pred_prob_new = safe_predict_proba(st.session_state.new_best_model, X)[:,1]
