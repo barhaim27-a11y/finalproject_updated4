@@ -408,11 +408,11 @@ for m in chosen_models:
     }
 
     st.subheader("📊 Metrics Comparison")
-        df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
-        df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
-        df_comp_display = df_comp.copy()
-        df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
-        st.dataframe(df_comp_display)
+    df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+    df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+    df_comp_display = df_comp.copy()
+    df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+    st.dataframe(df_comp_display)
 
         st.subheader("ROC Curves")
         fig = go.Figure()
