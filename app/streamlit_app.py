@@ -289,80 +289,81 @@ with tab_dash:
                                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
                                         trained_models = {}
                                         metrics_comp = {}
-    for m in chosen_models:
-        if m == "LogisticRegression":
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", LogisticRegression(
-                    C=params[m]["C"],
-                    max_iter=params[m]["max_iter"]
-                ))
-            ])
-        elif m == "RandomForest":
-            model = RandomForestClassifier(
-                n_estimators=params[m]["n_estimators"],
-                max_depth=params[m]["max_depth"],
-                min_samples_split=params[m]["min_samples_split"],
-                min_samples_leaf=params[m]["min_samples_leaf"],
+  for m in chosen_models:
+    if m == "LogisticRegression":
+        model = Pipeline([
+            ("scaler", StandardScaler()),
+            ("clf", LogisticRegression(
+                C=params.get(m, {}).get("C", 1.0),
+                max_iter=params.get(m, {}).get("max_iter", 500)
+            ))
+        ])
+    elif m == "RandomForest":
+        model = RandomForestClassifier(
+            n_estimators=params.get(m, {}).get("n_estimators", 200),
+            max_depth=params.get(m, {}).get("max_depth", None),
+            min_samples_split=params.get(m, {}).get("min_samples_split", 2),
+            min_samples_leaf=params.get(m, {}).get("min_samples_leaf", 1),
+            random_state=42
+        )
+    elif m == "XGBoost":
+        model = xgb.XGBClassifier(
+            eval_metric="logloss",
+            n_estimators=params.get(m, {}).get("n_estimators", 200),
+            learning_rate=params.get(m, {}).get("learning_rate", 0.1),
+            max_depth=params.get(m, {}).get("max_depth", 6),
+            subsample=params.get(m, {}).get("subsample", 1.0),
+            colsample_bytree=params.get(m, {}).get("colsample_bytree", 1.0),
+            random_state=42
+        )
+    elif m == "LightGBM":
+        model = lgb.LGBMClassifier(
+            n_estimators=params.get(m, {}).get("n_estimators", 200),
+            learning_rate=params.get(m, {}).get("learning_rate", 0.1),
+            num_leaves=params.get(m, {}).get("num_leaves", 31),
+            max_depth=params.get(m, {}).get("max_depth", -1),
+            random_state=42
+        )
+    elif m == "CatBoost":
+        model = CatBoostClassifier(
+            iterations=params.get(m, {}).get("iterations", 200),
+            depth=params.get(m, {}).get("depth", 6),
+            learning_rate=params.get(m, {}).get("learning_rate", 0.1),
+            verbose=0,
+            random_state=42
+        )
+    elif m == "SVM":
+        model = Pipeline([
+            ("scaler", StandardScaler()),
+            ("clf", SVC(
+                C=params.get(m, {}).get("C", 1.0),
+                kernel=params.get(m, {}).get("kernel", "rbf"),
+                gamma=params.get(m, {}).get("gamma", "scale"),
+                probability=True
+            ))
+        ])
+    elif m == "KNN":
+        model = Pipeline([
+            ("scaler", StandardScaler()),
+            ("clf", KNeighborsClassifier(
+                n_neighbors=params.get(m, {}).get("n_neighbors", 5),
+                weights=params.get(m, {}).get("weights", "uniform")
+            ))
+        ])
+    elif m == "NeuralNet":
+        hidden_layers = tuple(map(int, params.get(m, {}).get("hidden_layer_sizes", "64,32").split(",")))
+        model = Pipeline([
+            ("scaler", StandardScaler()),
+            ("clf", MLPClassifier(
+                hidden_layer_sizes=hidden_layers,
+                activation=params.get(m, {}).get("activation", "relu"),
+                max_iter=params.get(m, {}).get("max_iter", 500),
                 random_state=42
-            )
-        elif m == "XGBoost":
-            model = xgb.XGBClassifier(
-                eval_metric="logloss",
-                n_estimators=params[m]["n_estimators"],
-                learning_rate=params[m]["learning_rate"],
-                max_depth=params[m]["max_depth"],
-                subsample=params[m]["subsample"],
-                colsample_bytree=params[m]["colsample_bytree"],
-                random_state=42
-            )
-        elif m == "LightGBM":
-            model = lgb.LGBMClassifier(
-                n_estimators=params[m]["n_estimators"],
-                learning_rate=params[m]["learning_rate"],
-                num_leaves=params[m]["num_leaves"],
-                max_depth=params[m]["max_depth"],
-                random_state=42
-            )
-        elif m == "CatBoost":
-            model = CatBoostClassifier(
-                iterations=params[m]["iterations"],
-                depth=params[m]["depth"],
-                learning_rate=params[m]["learning_rate"],
-                verbose=0,
-                random_state=42
-            )
-        elif m == "SVM":
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", SVC(
-                    C=params[m]["C"],
-                    kernel=params[m]["kernel"],
-                    gamma=params[m]["gamma"],
-                    probability=True
-                ))
-            ])
-        elif m == "KNN":
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", KNeighborsClassifier(
-                    n_neighbors=params[m]["n_neighbors"],
-                    weights=params[m]["weights"]
-                ))
-            ])
-        elif m == "NeuralNet":
-            hidden_layers = tuple(map(int, params[m]["hidden_layer_sizes"].split(",")))
-            model = Pipeline([
-                ("scaler", StandardScaler()),
-                ("clf", MLPClassifier(
-                    hidden_layer_sizes=hidden_layers,
-                    activation=params[m]["activation"],
-                    max_iter=params[m]["max_iter"],
-                    random_state=42
-                ))
-            ])
-        else:
-            continue
+            ))
+        ])
+    else:
+        continue
+
                 # אימון והערכת ביצועים
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
