@@ -41,29 +41,28 @@ def align_features(model, X: pd.DataFrame) -> pd.DataFrame:
     """מתאים את הקובץ שהועלה לעמודות שהמודל מצפה להן"""
     if hasattr(model, "feature_names_in_"):
         expected_cols = list(model.feature_names_in_)
-        # נוסיף עמודות חסרות עם ערך ברירת מחדל 0
+        # נוסיף עמודות חסרות
         for col in expected_cols:
             if col not in X.columns:
                 X[col] = 0
-        # נסיר עמודות עודפות
-        X = X[[c for c in expected_cols if c in X.columns]]
+        # נסיר עמודות עודפות ונשמור על סדר
+        X = X[expected_cols]
     return X
 
 def safe_predict(model, X):
     try:
         return model.predict(X)
-    except ValueError:
-        if hasattr(model, "feature_names_in_"):
-            X = X[model.feature_names_in_]
+    except Exception:
+        X = align_features(model, X)
         return model.predict(X)
 
 def safe_predict_proba(model, X):
     try:
         return model.predict_proba(X)
-    except ValueError:
-        if hasattr(model, "feature_names_in_"):
-            X = X[model.feature_names_in_]
+    except Exception:
+        X = align_features(model, X)
         return model.predict_proba(X)
+
 
 # ==============================
 # Load dataset
