@@ -14,7 +14,7 @@ from sklearn.metrics import (
     confusion_matrix, roc_curve, auc, precision_recall_curve, roc_auc_score
 )
 from sklearn.inspection import PartialDependenceDisplay
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, learning_curve
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
@@ -201,7 +201,6 @@ with tab_dash:
         st.subheader("📊 Metrics Comparison")
         df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
         df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
-        df_comp.iloc[0, df_comp.columns.get_loc("roc_auc")] = df_comp.iloc[0]["roc_auc"]
         df_comp_display = df_comp.copy()
         df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
         st.dataframe(df_comp_display)
@@ -241,15 +240,73 @@ with tab2:
 
     st.subheader("Detailed Analysis – Best Model")
     y_pred = safe_predict(best_model, X)
+    y_pred_prob = safe_predict_proba(best_model, X)[:,1]
+
+    # Confusion Matrix
     cm = confusion_matrix(y, y_pred)
     fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Blues")
     st.plotly_chart(fig, use_container_width=True)
 
+    # ROC Curve
+    fpr, tpr, _ = roc_curve(y, y_pred_prob)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name="Best Model"))
+    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+    st.subheader("ROC Curve – Best Model")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Precision-Recall Curve
+    prec, rec, _ = precision_recall_curve(y, y_pred_prob)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name="Best Model"))
+    st.subheader("Precision-Recall Curve – Best Model")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Feature Importance
     if hasattr(best_model, "feature_importances_"):
         importances = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
         fig = px.bar(importances, orientation="h", title="Feature Importance (Best Model)")
         st.plotly_chart(fig, use_container_width=True)
 
+    # Learning Curve
+    st.subheader("Learning Curve – Best Model")
+    train_sizes, train_scores, test_scores = learning_curve(best_model, X, y, cv=5, n_jobs=-1, train_sizes=np.linspace(0.1, 1.0, 5))
+    train_scores_mean = np.mean(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=train_sizes, y=train_scores_mean, mode="lines+markers", name="Train"))
+    fig.add_trace(go.Scatter(x=train_sizes, y=test_scores_mean, mode="lines+markers", name="Validation"))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Cumulative Gain Curve
+    st.subheader("Cumulative Gain Curve – Best Model")
+    df_cg = pd.DataFrame({"y": y, "prob": y_pred_prob}).sort_values("prob", ascending=False)
+    df_cg["cum_positive"] = df_cg["y"].cumsum()
+    df_cg["percentage_samples"] = np.arange(1, len(df_cg)+1)/len(df_cg)
+    df_cg["percentage_positive"] = df_cg["cum_positive"]/df_cg["y"].sum()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_cg["percentage_samples"], y=df_cg["percentage_positive"], mode="lines", name="Model"))
+    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Lift Curve
+    st.subheader("Lift Curve – Best Model")
+    lift = df_cg["percentage_positive"] / df_cg["percentage_samples"]
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_cg["percentage_samples"], y=lift, mode="lines", name="Lift"))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # KS Statistic Curve
+    st.subheader("KS Statistic Curve – Best Model")
+    fpr, tpr, thresholds = roc_curve(y, y_pred_prob)
+    ks = tpr - fpr
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=thresholds, y=tpr, mode="lines", name="TPR"))
+    fig.add_trace(go.Scatter(x=thresholds, y=fpr, mode="lines", name="FPR"))
+    fig.add_trace(go.Scatter(x=thresholds, y=ks, mode="lines", name="KS Statistic"))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # PDP
     try:
         st.subheader("Partial Dependence Plot (Best Model)")
         fig, ax = plt.subplots()
@@ -258,6 +315,7 @@ with tab2:
     except Exception:
         st.info("PDP not available")
 
+    # SHAP
     try:
         st.subheader("SHAP Summary (Best Model)")
         explainer = shap.Explainer(best_model, X)
