@@ -79,7 +79,7 @@ best_model = st.session_state.best_model
 metrics = st.session_state.metrics
 
 # ==============================
-# Tabs (הוספנו Dashboard כטאב 2)
+# Tabs
 # ==============================
 tab1, tab_dash, tab2, tab3, tab4 = st.tabs([
     "📊 Data & EDA", 
@@ -126,15 +126,13 @@ with tab1:
             with st.expander(title, expanded=False):
                 st.image(path, use_column_width=True)
 
-# --- Tab 2: Dashboard (New)
+# --- Tab 2: Dashboard
 with tab_dash:
     st.header("📈 Interactive Dashboard – Compare Models")
 
-    # בחירת מודלים
     model_options = ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"]
     chosen_models = st.multiselect("בחר מודלים להשוואה", model_options, default=["RandomForest","XGBoost"])
 
-    # Hyperparameters
     st.subheader("⚙️ Hyperparameters")
     params = {}
     if "RandomForest" in chosen_models:
@@ -173,10 +171,7 @@ with tab_dash:
                     random_state=42
                 )
             elif m == "SVM":
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("clf", SVC(C=params[m]["C"], probability=True, kernel="rbf"))
-                ])
+                model = Pipeline([("scaler", StandardScaler()), ("clf", SVC(C=params[m]["C"], probability=True, kernel="rbf"))])
             elif m == "LogisticRegression":
                 model = Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(max_iter=500))])
             elif m == "KNN":
@@ -203,12 +198,14 @@ with tab_dash:
             trained_models[m] = model
             metrics_comp[m] = {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1, "roc_auc": auc_val}
 
-        # טבלת מדדים
         st.subheader("📊 Metrics Comparison")
-        df_comp = pd.DataFrame(metrics_comp).T
-        st.dataframe(df_comp.style.highlight_max(axis=0))
+        df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+        df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+        df_comp.iloc[0, df_comp.columns.get_loc("roc_auc")] = df_comp.iloc[0]["roc_auc"]
+        df_comp_display = df_comp.copy()
+        df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+        st.dataframe(df_comp_display)
 
-        # ROC curves
         st.subheader("ROC Curves")
         fig = go.Figure()
         for m, model in trained_models.items():
@@ -218,7 +215,6 @@ with tab_dash:
         fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
         st.plotly_chart(fig, use_container_width=True)
 
-        # PR curves
         st.subheader("Precision-Recall Curves")
         fig = go.Figure()
         for m, model in trained_models.items():
@@ -227,14 +223,110 @@ with tab_dash:
             fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
         st.plotly_chart(fig, use_container_width=True)
 
-# --- Tab 3: Models (מקורי + שדרוגים נשאר פה)
+# --- Tab 3: Models
 with tab2:
     st.header("🤖 Model Training & Comparison")
     df_metrics = pd.DataFrame(metrics).T.reset_index().rename(columns={"index":"Model"})
+    df_metrics = df_metrics.sort_values("roc_auc", ascending=False).reset_index(drop=True)
+    df_metrics.insert(0, "Rank", df_metrics.index + 1)
+    best_name = df_metrics.iloc[0]["Model"]
+    df_metrics.loc[0, "Model"] = f"🏆 {best_name}"
+
+    st.subheader("📊 Model Ranking")
     st.dataframe(df_metrics)
 
-    kpi_cols = st.columns(5)
-    best_row = df_metrics.sort_values("roc_auc", ascending=False).iloc[0]
-    for i, k in enumerate(["accuracy","precision","recall","f1","roc_auc"]):
-        if k in best_row:
-            kpi_cols[i].metric(k.capitalize(), f"{best_row[k]:.3f}")
+    st.subheader("🏆 Best Model Results")
+    best_row = df_metrics.iloc[0]
+    st.table(pd.DataFrame(best_row).T)
+
+    st.subheader("Detailed Analysis – Best Model")
+    y_pred = safe_predict(best_model, X)
+    cm = confusion_matrix(y, y_pred)
+    fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Blues")
+    st.plotly_chart(fig, use_container_width=True)
+
+    if hasattr(best_model, "feature_importances_"):
+        importances = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
+        fig = px.bar(importances, orientation="h", title="Feature Importance (Best Model)")
+        st.plotly_chart(fig, use_container_width=True)
+
+    try:
+        st.subheader("Partial Dependence Plot (Best Model)")
+        fig, ax = plt.subplots()
+        PartialDependenceDisplay.from_estimator(best_model, X, [0], ax=ax)
+        st.pyplot(fig)
+    except Exception:
+        st.info("PDP not available")
+
+    try:
+        st.subheader("SHAP Summary (Best Model)")
+        explainer = shap.Explainer(best_model, X)
+        shap_values = explainer(X.iloc[:50])
+        st.pyplot(shap.plots.beeswarm(shap_values))
+    except Exception:
+        st.warning("SHAP not available")
+
+# --- Tab 4: Prediction
+with tab3:
+    st.header("🔮 Prediction")
+    threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
+
+    option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
+    if option=="Manual Input":
+        inputs = {col: st.number_input(col, float(X[col].mean())) for col in X.columns}
+        sample = pd.DataFrame([inputs])
+        if st.button("Predict Sample"):
+            prob = safe_predict_proba(best_model, sample)[0,1]
+            st.progress(prob)
+            st.write(f"Probability: {prob:.2f}")
+    else:
+        file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
+        if file:
+            if file.name.endswith(".csv"):
+                new_df = pd.read_csv(file)
+            else:
+                new_df = pd.read_excel(file)
+
+            st.write("Preview:")
+            st.dataframe(new_df.head())
+
+            probs = safe_predict_proba(best_model, new_df)[:,1]
+            preds = (probs >= threshold).astype(int)
+            new_df["Probability"] = probs
+            new_df["Prediction"] = preds
+
+            st.write("Summary of Predictions")
+            st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+
+            cm = confusion_matrix(preds, new_df["Prediction"])
+            fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Oranges")
+            st.plotly_chart(fig)
+
+            st.download_button("📥 Download Predictions (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
+
+# --- Tab 5: Train New Model
+with tab4:
+    st.header("⚡ Train New Model")
+    model_choices = st.multiselect("Select Models", ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"], default=["RandomForest","XGBoost"])
+    rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
+    xgb_lr = st.slider("XGBoost Learning Rate", 0.01, 0.5, 0.1, 0.01)
+
+    file = st.file_uploader("Upload CSV for retraining", type=["csv"], key="newtrain")
+    if file:
+        new_df = pd.read_csv(file)
+        st.write("New Data Preview:", new_df.head())
+
+        if st.button("Retrain Models"):
+            new_df.to_csv("data/new_train.csv", index=False)
+            config = {"models": model_choices, "params": {"rf_trees": rf_trees, "xgb_lr": xgb_lr}}
+            os.makedirs("assets", exist_ok=True)
+            with open("assets/config.json","w") as f:
+                json.dump(config, f, indent=4)
+            runpy.run_path("app/model_pipeline.py")
+
+            with open("assets/metrics.json","r") as f:
+                new_metrics = json.load(f)
+            comp_df = pd.DataFrame(new_metrics).T.reset_index().rename(columns={"index":"Model"})
+            st.subheader("📊 New Training Results")
+            st.dataframe(comp_df)
+            st.success("✅ Models retrained! See results above.")
