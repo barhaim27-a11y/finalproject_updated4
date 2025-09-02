@@ -177,6 +177,7 @@ else:
 st.sidebar.markdown(f"🕒 **Model Last Updated:** {last_updated}")
 st.subheader("⚙️ Hyperparameters")
 params = {}
+
 if "LogisticRegression" in chosen_models:
     params["LogisticRegression"] = {
         "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_dash"),
