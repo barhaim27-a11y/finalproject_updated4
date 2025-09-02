@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib, os, runpy, json, io, shutil
 
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, auc, precision_recall_curve
+from sklearn.metrics import (
+    confusion_matrix, ConfusionMatrixDisplay,
+    roc_curve, auc, precision_recall_curve
+)
 
 st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="wide")
 
@@ -78,33 +81,26 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
-
     st.subheader("Dataset Preview")
     st.dataframe(df.head())
 
-    # --- סטטיסטיקות על הדאטה ---
+    # --- סטטיסטיקות ---
     st.subheader("Dataset Info & Statistics")
-
-    # 1. Rows & Columns
     st.write(f"🔹 Rows: {df.shape[0]}, Columns: {df.shape[1]}")
 
-    # 2. Missing values
     missing = df.isnull().sum()
-    st.write("🔹 Missing Values per Column:")
     if missing.sum() > 0:
+        st.warning("Missing Values detected:")
         st.dataframe(missing[missing > 0])
     else:
         st.success("No missing values ✅")
 
-    # 3. Descriptive stats
     st.write("🔹 Statistical Summary")
     st.dataframe(df.describe().T)
 
-    # 4. Target distribution
     st.write("🔹 Target Distribution (Counts)")
     st.table(y.value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
 
-    # 5. Correlation with target
     st.write("🔹 Top Features Correlated with Target")
     corr_target = df.corr()["status"].abs().sort_values(ascending=False)[1:6]
     st.table(corr_target)
@@ -120,7 +116,6 @@ with tab1:
         "PCA Projection": "pca.png",
         "t-SNE Projection": "tsne.png"
     }
-
     for title, filename in eda_plots.items():
         path = os.path.join(eda_dir, filename)
         if os.path.exists(path):
@@ -134,21 +129,37 @@ with tab2:
     df_metrics = pd.DataFrame(metrics).T.reset_index().rename(columns={"index":"Model"})
     st.dataframe(df_metrics)
 
-    # KPIs
-    cols = st.columns(5)
+    # === KPIs Dashboard ===
+    kpi_cols = st.columns(5)
+    best_row = df_metrics.sort_values("roc_auc", ascending=False).iloc[0]
     for i, k in enumerate(["accuracy","precision","recall","f1","roc_auc"]):
-        if k in df_metrics.columns:
-            cols[i].metric(k.capitalize(), f"{df_metrics.iloc[0][k]:.3f}")
+        if k in best_row:
+            kpi_cols[i].metric(k.capitalize(), f"{best_row[k]:.3f}")
 
-    # Bar chart
+    # === Bar chart ROC-AUC ===
     if "roc_auc" in df_metrics.columns:
         st.bar_chart(df_metrics.set_index("Model")["roc_auc"])
 
     # Best Model
-    best_name = df_metrics.sort_values("roc_auc", ascending=False).iloc[0]["Model"]
+    best_name = best_row["Model"]
     st.success(f"🏆 Best Model: {best_name}")
 
-    # Confusion Matrix
+    # === ROC & PR Comparison for all models ===
+    st.subheader("ROC & PR Curves (All Models)")
+    fig, ax = plt.subplots()
+    for _, row in df_metrics.iterrows():
+        model_path = "models/best_model.joblib" if row["Model"] == best_name else None
+        if model_path and os.path.exists(model_path):
+            model = best_model
+            y_pred_prob = safe_predict_proba(model, X)[:,1]
+            fpr, tpr, _ = roc_curve(y, y_pred_prob)
+            ax.plot(fpr, tpr, label=f"{row['Model']} (AUC={row['roc_auc']:.2f})")
+    ax.plot([0,1],[0,1],'k--')
+    ax.legend()
+    st.pyplot(fig)
+
+    # Confusion Matrix (Best Model)
+    st.subheader("Confusion Matrix (Best Model)")
     y_pred = safe_predict(best_model, X)
     cm = confusion_matrix(y, y_pred)
     fig, ax = plt.subplots()
@@ -156,26 +167,18 @@ with tab2:
     disp.plot(cmap="Blues", values_format="d", ax=ax)
     st.pyplot(fig)
 
-    # ROC Curve
-    y_pred_prob = safe_predict_proba(best_model, X)[:,1]
-    fpr, tpr, _ = roc_curve(y, y_pred_prob)
-    roc_auc_val = auc(fpr, tpr)
-    fig, ax = plt.subplots()
-    ax.plot(fpr, tpr, label=f"ROC curve (AUC = {roc_auc_val:.2f})")
-    ax.plot([0,1],[0,1],'k--')
-    ax.legend(loc="lower right")
-    st.pyplot(fig)
-
-    # Precision-Recall Curve
-    prec, rec, _ = precision_recall_curve(y, y_pred_prob)
-    fig, ax = plt.subplots()
-    ax.plot(rec, prec, label="Precision-Recall Curve")
-    ax.legend()
-    st.pyplot(fig)
+    # Feature Importance
+    if hasattr(best_model, "feature_importances_"):
+        st.subheader("Feature Importance")
+        importances = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
+        fig, ax = plt.subplots(figsize=(8,6))
+        sns.barplot(x=importances, y=importances.index, ax=ax)
+        st.pyplot(fig)
 
     # SHAP Summary Plot
     shap_path = os.path.join("assets","shap_summary.png")
     if os.path.exists(shap_path):
+        st.subheader("Explainability (SHAP)")
         st.image(shap_path, caption="SHAP Feature Importance")
 
 # --- Tab 3: Prediction
@@ -205,9 +208,19 @@ with tab3:
             new_df["decision_text"] = [decision_text(p, threshold) for p in probs]
             st.dataframe(new_df.head())
 
+            # Summary counts
+            st.write("🔹 Prediction Summary")
+            st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+
 # --- Tab 4: Train New Model
 with tab4:
     st.header("⚡ Train New Model")
+    st.write("בחר אילו מודלים לאמן והגדר היפר-פרמטרים בסיסיים:")
+
+    model_choices = st.multiselect("בחר מודלים", ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"], default=["RandomForest","XGBoost"])
+    rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
+    xgb_lr = st.slider("XGBoost Learning Rate", 0.01, 0.5, 0.1, 0.01)
+
     file = st.file_uploader("Upload CSV for retraining", type=["csv"], key="newtrain")
     if file:
         new_df = pd.read_csv(file)
@@ -216,6 +229,7 @@ with tab4:
         if st.button("Retrain Models"):
             new_path = "data/new_train.csv"
             new_df.to_csv(new_path, index=False)
+            # ⚠️ כאן ניתן לשלב קריאה ל-pipeline מעודכן שיקח את הפרמטרים
             runpy.run_path("app/model_pipeline.py")
 
             st.success("✅ Models retrained! Reload the app to see updates.")
