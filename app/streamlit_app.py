@@ -33,6 +33,59 @@ st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="
 
 st.sidebar.title("⚙️ Settings")
 threshold_global = st.sidebar.slider("Decision Threshold (Global)", 0.0, 1.0, 0.5, 0.01)
+# ==============================
+# CONFIG
+# ==============================
+st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="wide")
+
+st.sidebar.title("⚙️ Settings")
+
+# ✅ Theme selector
+theme_choice = st.sidebar.radio("Theme", ["Light", "Dark"], index=0)
+
+# ✅ Language selector
+language_choice = st.sidebar.selectbox("Language", ["English", "עברית", "العربية", "Français"], index=1)
+
+# ✅ Text size
+text_size = st.sidebar.select_slider("Text Size", options=["Small", "Medium", "Large"], value="Medium")
+
+# ✅ Layout density
+layout_density = st.sidebar.radio("Layout Density", ["Comfortable", "Compact"], index=0)
+
+# ✅ Toggle advanced EDA
+show_advanced_eda = st.sidebar.checkbox("Show Advanced EDA Visualizations", value=True)
+
+# ✅ Decision Threshold (global)
+threshold_global = st.sidebar.slider("Decision Threshold (Global)", 0.0, 1.0, 0.5, 0.01)
+
+# ==============================
+# Apply UI Customizations (CSS)
+# ==============================
+def apply_custom_style():
+    css = ""
+    # Theme
+    if theme_choice == "Dark":
+        css += """
+        body, .stApp {
+            background-color: #111 !important;
+            color: #eee !important;
+        }
+        """
+    # Text size
+    if text_size == "Small":
+        css += "body, .stApp { font-size: 13px !important; }"
+    elif text_size == "Medium":
+        css += "body, .stApp { font-size: 16px !important; }"
+    elif text_size == "Large":
+        css += "body, .stApp { font-size: 19px !important; }"
+
+    # Layout density
+    if layout_density == "Compact":
+        css += ".block-container { padding-top: 0rem; padding-bottom: 0rem; }"
+
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+apply_custom_style()
 
 # ==============================
 # Helpers
