@@ -177,7 +177,6 @@ else:
 st.sidebar.markdown(f"🕒 **Model Last Updated:** {last_updated}")
 st.subheader("⚙️ Hyperparameters")
 params = {}
-
 if "LogisticRegression" in chosen_models:
     params["LogisticRegression"] = {
         "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_dash"),
@@ -360,11 +359,6 @@ if "NeuralNet" in chosen_models:
         prec, rec, _ = precision_recall_curve(y_test, y_proba)
         fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
     st.plotly_chart(fig, use_container_width=True)
-
-
-
-
-      
 
 # --- Tab 3: Models
 with tab2:
