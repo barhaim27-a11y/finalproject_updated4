@@ -110,22 +110,6 @@ with tab1:
     corr_target = df.corr()["status"].abs().sort_values(ascending=False)[1:6]
     st.table(corr_target)
 
-    st.subheader("Exploratory Plots")
-    eda_dir = "eda"
-    eda_plots = {
-        "Target Distribution (Count & Pie)": "target_distribution_combo.png",
-        "Correlation Heatmap": "corr_heatmap.png",
-        "Pairplot of Top Features": "pairplot_top_features.png",
-        "Histograms & Violin Plots": "distributions_violin.png",
-        "PCA Projection": "pca.png",
-        "t-SNE Projection": "tsne.png"
-    }
-    for title, filename in eda_plots.items():
-        path = os.path.join(eda_dir, filename)
-        if os.path.exists(path):
-            with st.expander(title, expanded=False):
-                st.image(path, use_column_width=True)
-
 # --- Tab 2: Dashboard
 with tab_dash:
     st.header("📈 Interactive Dashboard – Compare Models")
@@ -214,14 +198,6 @@ with tab_dash:
         fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
         st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("Precision-Recall Curves")
-        fig = go.Figure()
-        for m, model in trained_models.items():
-            y_proba = model.predict_proba(X_test)[:,1]
-            prec, rec, _ = precision_recall_curve(y_test, y_proba)
-            fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
-        st.plotly_chart(fig, use_container_width=True)
-
 # --- Tab 3: Models
 with tab2:
     st.header("🤖 Model Training & Comparison")
@@ -238,91 +214,20 @@ with tab2:
     best_row = df_metrics.iloc[0]
     st.table(pd.DataFrame(best_row).T)
 
-    st.subheader("Detailed Analysis – Best Model")
+    # Confusion Matrix
     y_pred = safe_predict(best_model, X)
     y_pred_prob = safe_predict_proba(best_model, X)[:,1]
-
-    # Confusion Matrix
     cm = confusion_matrix(y, y_pred)
     fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Blues")
     st.plotly_chart(fig, use_container_width=True)
 
-    # ROC Curve
-    fpr, tpr, _ = roc_curve(y, y_pred_prob)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name="Best Model"))
-    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
-    st.subheader("ROC Curve – Best Model")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Precision-Recall Curve
-    prec, rec, _ = precision_recall_curve(y, y_pred_prob)
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name="Best Model"))
-    st.subheader("Precision-Recall Curve – Best Model")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Feature Importance
-    if hasattr(best_model, "feature_importances_"):
-        importances = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
-        fig = px.bar(importances, orientation="h", title="Feature Importance (Best Model)")
-        st.plotly_chart(fig, use_container_width=True)
-
     # Learning Curve
     st.subheader("Learning Curve – Best Model")
     train_sizes, train_scores, test_scores = learning_curve(best_model, X, y, cv=5, n_jobs=-1, train_sizes=np.linspace(0.1, 1.0, 5))
-    train_scores_mean = np.mean(train_scores, axis=1)
-    test_scores_mean = np.mean(test_scores, axis=1)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=train_sizes, y=train_scores_mean, mode="lines+markers", name="Train"))
-    fig.add_trace(go.Scatter(x=train_sizes, y=test_scores_mean, mode="lines+markers", name="Validation"))
+    fig.add_trace(go.Scatter(x=train_sizes, y=np.mean(train_scores, axis=1), mode="lines+markers", name="Train"))
+    fig.add_trace(go.Scatter(x=train_sizes, y=np.mean(test_scores, axis=1), mode="lines+markers", name="Validation"))
     st.plotly_chart(fig, use_container_width=True)
-
-    # Cumulative Gain Curve
-    st.subheader("Cumulative Gain Curve – Best Model")
-    df_cg = pd.DataFrame({"y": y, "prob": y_pred_prob}).sort_values("prob", ascending=False)
-    df_cg["cum_positive"] = df_cg["y"].cumsum()
-    df_cg["percentage_samples"] = np.arange(1, len(df_cg)+1)/len(df_cg)
-    df_cg["percentage_positive"] = df_cg["cum_positive"]/df_cg["y"].sum()
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_cg["percentage_samples"], y=df_cg["percentage_positive"], mode="lines", name="Model"))
-    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Lift Curve
-    st.subheader("Lift Curve – Best Model")
-    lift = df_cg["percentage_positive"] / df_cg["percentage_samples"]
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_cg["percentage_samples"], y=lift, mode="lines", name="Lift"))
-    st.plotly_chart(fig, use_container_width=True)
-
-    # KS Statistic Curve
-    st.subheader("KS Statistic Curve – Best Model")
-    fpr, tpr, thresholds = roc_curve(y, y_pred_prob)
-    ks = tpr - fpr
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=thresholds, y=tpr, mode="lines", name="TPR"))
-    fig.add_trace(go.Scatter(x=thresholds, y=fpr, mode="lines", name="FPR"))
-    fig.add_trace(go.Scatter(x=thresholds, y=ks, mode="lines", name="KS Statistic"))
-    st.plotly_chart(fig, use_container_width=True)
-
-    # PDP
-    try:
-        st.subheader("Partial Dependence Plot (Best Model)")
-        fig, ax = plt.subplots()
-        PartialDependenceDisplay.from_estimator(best_model, X, [0], ax=ax)
-        st.pyplot(fig)
-    except Exception:
-        st.info("PDP not available")
-
-    # SHAP
-    try:
-        st.subheader("SHAP Summary (Best Model)")
-        explainer = shap.Explainer(best_model, X)
-        shap_values = explainer(X.iloc[:50])
-        st.pyplot(shap.plots.beeswarm(shap_values))
-    except Exception:
-        st.warning("SHAP not available")
 
 # --- Tab 4: Prediction
 with tab3:
@@ -330,13 +235,50 @@ with tab3:
     threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
 
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
+
+    # Manual Input
     if option=="Manual Input":
         inputs = {col: st.number_input(col, float(X[col].mean())) for col in X.columns}
         sample = pd.DataFrame([inputs])
+
         if st.button("Predict Sample"):
             prob = safe_predict_proba(best_model, sample)[0,1]
-            st.progress(prob)
-            st.write(f"Probability: {prob:.2f}")
+            pred = int(prob >= threshold)
+
+            # Result card
+            st.subheader("🧾 Prediction Result")
+            if pred == 1:
+                st.markdown(f"""
+                <div style="padding:15px; background-color:#ffe6e6; border-radius:10px; text-align:center">
+                    <h2 style="color:#cc0000">🔴 Parkinson’s Detected</h2>
+                    <p>Probability: <b>{prob*100:.1f}%</b> (Threshold={threshold:.2f})</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="padding:15px; background-color:#e6ffe6; border-radius:10px; text-align:center">
+                    <h2 style="color:#009900">🟢 Healthy</h2>
+                    <p>Probability: <b>{prob*100:.1f}%</b> (Threshold={threshold:.2f})</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            fig = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = prob*100,
+                title = {"text": "Probability of Parkinson’s"},
+                gauge = {
+                    "axis": {"range": [0, 100]},
+                    "bar": {"color": "red" if pred==1 else "green"},
+                    "steps": [
+                        {"range": [0,30], "color":"#e6ffe6"},
+                        {"range": [30,70], "color":"#fff5e6"},
+                        {"range": [70,100], "color":"#ffe6e6"}
+                    ]
+                }
+            ))
+            st.plotly_chart(fig, use_container_width=True)
+
+    # File Upload
     else:
         file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
         if file:
@@ -345,22 +287,25 @@ with tab3:
             else:
                 new_df = pd.read_excel(file)
 
-            st.write("Preview:")
+            st.write("Preview of Uploaded Data:")
             st.dataframe(new_df.head())
 
             probs = safe_predict_proba(best_model, new_df)[:,1]
             preds = (probs >= threshold).astype(int)
-            new_df["Probability"] = probs
+            new_df["Probability"] = (probs*100).round(1)
             new_df["Prediction"] = preds
 
-            st.write("Summary of Predictions")
-            st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+            st.subheader("📊 Prediction Summary")
+            summary = pd.Series(preds).value_counts().rename({0:"Healthy 🟢",1:"Parkinson’s 🔴"})
+            st.table(summary)
 
-            cm = confusion_matrix(preds, new_df["Prediction"])
-            fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Oranges")
-            st.plotly_chart(fig)
+            st.subheader("Detailed Results")
+            st.dataframe(new_df.head(20))
 
             st.download_button("📥 Download Predictions (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
+            new_df.to_excel("predictions.xlsx", index=False)
+            with open("predictions.xlsx","rb") as f:
+                st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
 
 # --- Tab 5: Train New Model
 with tab4:
