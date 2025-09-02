@@ -1,272 +1,213 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import joblib, os, json, runpy
 import matplotlib.pyplot as plt
-import seaborn as sns
-import joblib, os, runpy, json, io, shutil
+import shap
+
+import plotly.express as px
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
 
 from sklearn.metrics import (
-    confusion_matrix, ConfusionMatrixDisplay,
-    roc_curve, auc, precision_recall_curve
+    accuracy_score, precision_score, recall_score, f1_score,
+    roc_curve, precision_recall_curve, confusion_matrix
 )
-
-st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="wide")
-
-# ==============================
-# Helpers
-# ==============================
-def safe_predict(model, X):
-    try:
-        return model.predict(X)
-    except ValueError:
-        if hasattr(model, "feature_names_in_"):
-            X = X[model.feature_names_in_]
-        return model.predict(X)
-
-def safe_predict_proba(model, X):
-    try:
-        return model.predict_proba(X)
-    except ValueError:
-        if hasattr(model, "feature_names_in_"):
-            X = X[model.feature_names_in_]
-        return model.predict_proba(X)
-
-def risk_label(prob, threshold=0.5):
-    if prob < 0.3:
-        return "🟢 Low"
-    elif prob < 0.7:
-        return "🟡 Medium"
-    else:
-        return "🔴 High"
-
-def decision_text(prob, threshold=0.5):
-    decision = "Positive (Parkinson’s)" if prob >= threshold else "Negative (Healthy)"
-    return f"ההסתברות היא {prob*100:.1f}%, הסיווג עם הסף {threshold:.2f} הוא {decision}"
+from sklearn.inspection import PartialDependenceDisplay
 
 # ==============================
-# Load dataset
+# CONFIG
+# ==============================
+st.set_page_config(page_title="Parkinson’s ML Dashboard", page_icon="🧠", layout="wide")
+
+# Sidebar – Settings
+st.sidebar.title("⚙️ Settings")
+lang = st.sidebar.radio("🌐 Language", ["English","עברית"], index=0)
+theme = st.sidebar.radio("🎨 Theme", ["Light","Dark"], index=0)
+threshold = st.sidebar.slider("Decision Threshold", 0.0, 1.0, 0.5, 0.01)
+
+# Language dict
+T = {
+    "English": {
+        "dashboard": "📊 Dashboard",
+        "features": "🔍 Feature Analysis",
+        "prediction": "🔮 Prediction",
+        "training": "⚡ Training",
+        "rowscols": "Rows / Columns",
+        "missing": "Missing Values",
+        "summary": "Statistical Summary",
+        "target": "Target Distribution",
+        "top_corr": "Top Features Correlated with Target",
+        "kpi": "Model KPIs",
+        "cm": "Confusion Matrix",
+        "roc": "ROC Curve",
+        "pr": "Precision-Recall Curve",
+        "fi": "Feature Importance",
+        "pdp": "Partial Dependence Plot",
+        "shap": "SHAP Force Plot",
+        "upload": "Upload CSV/Excel for Prediction",
+        "preview": "Preview of Uploaded Data",
+        "results": "Prediction Results",
+        "download": "Download Results",
+        "train": "Retrain Models",
+        "choose_models": "Select Models to Train",
+    },
+    "עברית": {
+        "dashboard": "📊 לוח בקרה",
+        "features": "🔍 ניתוח מאפיינים",
+        "prediction": "🔮 חיזוי",
+        "training": "⚡ אימון מודלים",
+        "rowscols": "שורות / עמודות",
+        "missing": "ערכים חסרים",
+        "summary": "סטטיסטיקות",
+        "target": "התפלגות יעד",
+        "top_corr": "קורלציה מול היעד",
+        "kpi": "מדדי המודל",
+        "cm": "מטריצת בלבול",
+        "roc": "עקומת ROC",
+        "pr": "עקומת Precision-Recall",
+        "fi": "חשיבות מאפיינים",
+        "pdp": "Partial Dependence Plot",
+        "shap": "SHAP Force Plot",
+        "upload": "העלה קובץ CSV/Excel לחיזוי",
+        "preview": "תצוגה מקדימה",
+        "results": "תוצאות חיזוי",
+        "download": "הורד תוצאות",
+        "train": "אימון מודלים",
+        "choose_models": "בחר מודלים לאימון",
+    }
+}[lang]
+
+# ==============================
+# Load Data & Model
 # ==============================
 DATA_PATH = "data/parkinsons.csv"
 df = pd.read_csv(DATA_PATH)
 X = df.drop("status", axis=1)
 y = df["status"]
 
-# ==============================
-# Load model + metrics
-# ==============================
-def load_model_and_metrics():
-    if not os.path.exists("models/best_model.joblib") or not os.path.exists("assets/metrics.json"):
-        runpy.run_path("app/model_pipeline.py")
-    best_model = joblib.load("models/best_model.joblib")
-    with open("assets/metrics.json","r") as f:
-        metrics = json.load(f)
-    return best_model, metrics
+best_model = joblib.load("models/best_model.joblib")
+with open("assets/metrics.json","r") as f:
+    metrics = json.load(f)
 
-if "best_model" not in st.session_state or "metrics" not in st.session_state:
-    st.session_state.best_model, st.session_state.metrics = load_model_and_metrics()
-
-best_model = st.session_state.best_model
-metrics = st.session_state.metrics
+# User can pick which model to display
+available_models = list(metrics.keys())
+selected_model = st.sidebar.selectbox("Select Model to Display", available_models)
+model_metrics = metrics[selected_model]
+model = best_model  # לצורך פשטות נטען רק את הטוב ביותר ששמור כרגע
 
 # ==============================
 # Tabs
 # ==============================
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Data & EDA", 
-    "🤖 Models", 
-    "🔮 Prediction", 
-    "⚡ Train New Model"
+    T["dashboard"], 
+    T["features"], 
+    T["prediction"], 
+    T["training"]
 ])
 
-# --- Tab 1: Data & EDA
+# --- Tab 1: Dashboard
 with tab1:
-    st.header("📊 Data & Exploratory Data Analysis")
+    st.header(T["dashboard"])
 
-    st.subheader("Dataset Preview")
-    st.dataframe(df.head())
-
-    # --- סטטיסטיקות ---
-    st.subheader("Dataset Info & Statistics")
-    st.write(f"🔹 Rows: {df.shape[0]}, Columns: {df.shape[1]}")
-
-    missing = df.isnull().sum()
-    if missing.sum() > 0:
-        st.warning("Missing Values detected:")
-        st.dataframe(missing[missing > 0])
-    else:
-        st.success("No missing values ✅")
-
-    st.write("🔹 Statistical Summary")
-    st.dataframe(df.describe().T)
-
-    st.write("🔹 Target Distribution (Counts)")
-    st.table(y.value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
-
-    st.write("🔹 Top Features Correlated with Target")
-    corr_target = df.corr()["status"].abs().sort_values(ascending=False)[1:6]
-    st.table(corr_target)
-
-    # --- גרפים מוכנים מתיקיית eda ---
-    st.subheader("Exploratory Plots")
-    eda_dir = "eda"
-    eda_plots = {
-        "Target Distribution (Count & Pie)": "target_distribution_combo.png",
-        "Correlation Heatmap": "corr_heatmap.png",
-        "Pairplot of Top Features": "pairplot_top_features.png",
-        "Histograms & Violin Plots": "distributions_violin.png",
-        "PCA Projection": "pca.png",
-        "t-SNE Projection": "tsne.png"
-    }
-    for title, filename in eda_plots.items():
-        path = os.path.join(eda_dir, filename)
-        if os.path.exists(path):
-            with st.expander(title, expanded=False):
-                st.image(path, use_column_width=True)
-
-# --- Tab 2: Models
-with tab2:
-    st.header("🤖 Model Training & Comparison")
-
-    df_metrics = pd.DataFrame(metrics).T.reset_index().rename(columns={"index":"Model"})
-    st.dataframe(df_metrics)
-
-    # === KPIs Dashboard ===
+    # KPIs
     kpi_cols = st.columns(5)
-    best_row = df_metrics.sort_values("roc_auc", ascending=False).iloc[0]
     for i, k in enumerate(["accuracy","precision","recall","f1","roc_auc"]):
-        if k in best_row:
-            kpi_cols[i].metric(k.capitalize(), f"{best_row[k]:.3f}")
+        if k in model_metrics:
+            kpi_cols[i].metric(k.capitalize(), f"{model_metrics[k]:.3f}")
 
-    # === ROC-AUC bar chart ===
-    if "roc_auc" in df_metrics.columns:
-        st.bar_chart(df_metrics.set_index("Model")["roc_auc"])
-
-    # === ROC curves for all models (comparison) ===
-    st.subheader("ROC Curves (All Models)")
-    fig, ax = plt.subplots()
-    for model_name in df_metrics["Model"]:
-        try:
-            # נטען מחדש אם זה המודל הטוב ביותר
-            model = best_model if model_name == best_row["Model"] else None
-            if model:
-                y_pred_prob = safe_predict_proba(model, X)[:,1]
-                fpr, tpr, _ = roc_curve(y, y_pred_prob)
-                ax.plot(fpr, tpr, label=f"{model_name} (AUC={df_metrics.loc[df_metrics['Model']==model_name,'roc_auc'].values[0]:.2f})")
-        except Exception:
-            pass
-    ax.plot([0,1],[0,1],'k--')
-    ax.legend()
-    st.pyplot(fig)
-
-    # Confusion Matrix
-    st.subheader("Confusion Matrix (Best Model)")
-    y_pred = safe_predict(best_model, X)
+    # Confusion Matrix (Plotly)
+    y_pred = model.predict(X)
     cm = confusion_matrix(y, y_pred)
-    fig, ax = plt.subplots()
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Healthy","Parkinson’s"])
-    disp.plot(cmap="Blues", values_format="d", ax=ax)
-    st.pyplot(fig)
+    fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Blues")
+    st.subheader(T["cm"])
+    st.plotly_chart(fig, use_container_width=True)
 
-    # Feature Importance
-    if hasattr(best_model, "feature_importances_"):
-        st.subheader("Feature Importance")
-        importances = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
-        fig, ax = plt.subplots(figsize=(8,6))
-        sns.barplot(x=importances, y=importances.index, ax=ax)
+    # ROC Curve
+    y_pred_prob = model.predict_proba(X)[:,1]
+    fpr, tpr, _ = roc_curve(y, y_pred_prob)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"ROC AUC={model_metrics['roc_auc']:.2f}"))
+    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+    st.subheader(T["roc"])
+    st.plotly_chart(fig, use_container_width=True)
+
+    # PR Curve
+    prec, rec, _ = precision_recall_curve(y, y_pred_prob)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name="PR Curve"))
+    st.subheader(T["pr"])
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- Tab 2: Feature Analysis
+with tab2:
+    st.header(T["features"])
+
+    # Feature importance
+    if hasattr(model, "feature_importances_"):
+        st.subheader(T["fi"])
+        importances = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
+        fig = px.bar(importances, orientation="h")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # PDP
+    try:
+        st.subheader(T["pdp"])
+        fig, ax = plt.subplots()
+        PartialDependenceDisplay.from_estimator(model, X, [0], ax=ax)
         st.pyplot(fig)
+    except Exception:
+        st.info("PDP not available")
 
-    # SHAP Summary
-    shap_path = os.path.join("assets","shap_summary.png")
-    if os.path.exists(shap_path):
-        st.subheader("Explainability (SHAP)")
-        st.image(shap_path, caption="SHAP Feature Importance")
+    # SHAP
+    try:
+        st.subheader(T["shap"])
+        explainer = shap.Explainer(model, X)
+        shap_values = explainer(X.iloc[:50])
+        st.pyplot(shap.plots.force(shap_values[0], matplotlib=True, show=False))
+    except Exception:
+        st.warning("SHAP not available")
 
 # --- Tab 3: Prediction
 with tab3:
-    st.header("🔮 Prediction")
-    threshold = st.slider("Decision Threshold", 0.0, 1.0, 0.5, 0.01)
-    option = st.radio("Choose input type:", ["Manual Input","Upload CSV"])
-    
-    if option=="Manual Input":
-        inputs = {col: st.number_input(col, float(X[col].mean())) for col in X.columns}
-        sample = pd.DataFrame([inputs])
-        if st.button("Predict Sample"):
-            prob = safe_predict_proba(best_model, sample)[0,1]
-            st.progress(prob)
-            st.write(risk_label(prob, threshold))
-            st.info(decision_text(prob, threshold))
-    
-    else:
-        file = st.file_uploader("Upload CSV", type=["csv"])
-        if file:
+    st.header(T["prediction"])
+    file = st.file_uploader(T["upload"], type=["csv","xlsx"])
+    if file:
+        if file.name.endswith(".csv"):
             new_df = pd.read_csv(file)
-            probs = safe_predict_proba(best_model, new_df)[:,1]
-            preds = (probs >= threshold).astype(int)
-            new_df["Probability"] = probs
-            new_df["Prediction"] = preds
-            new_df["risk_label"] = [risk_label(p, threshold) for p in probs]
-            new_df["decision_text"] = [decision_text(p, threshold) for p in probs]
-            st.dataframe(new_df.head())
+        else:
+            new_df = pd.read_excel(file)
 
-            # Summary counts
-            st.write("🔹 Prediction Summary")
-            st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+        st.write(T["preview"])
+        st.dataframe(new_df.head())
 
-            # Confusion Matrix with chosen threshold
-            st.subheader("Confusion Matrix with Threshold")
-            cm = confusion_matrix(new_df["Prediction"], preds)
-            fig, ax = plt.subplots()
-            disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-            disp.plot(cmap="Oranges", values_format="d", ax=ax)
-            st.pyplot(fig)
+        probs = model.predict_proba(new_df)[:,1]
+        preds = (probs >= threshold).astype(int)
+        new_df["Probability"] = probs
+        new_df["Prediction"] = preds
 
-            # Download results
-            csv_data = new_df.to_csv(index=False).encode("utf-8")
-            st.download_button("📥 Download Predictions (CSV)", csv_data, "predictions.csv", "text/csv")
+        st.write(T["results"])
+        st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
 
-# --- Tab 4: Train New Model
+        cm = confusion_matrix(y[:len(preds)], preds)
+        fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Oranges")
+        st.plotly_chart(fig)
+
+        st.download_button("📥 " + T["download"] + " (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
+
+# --- Tab 4: Training
 with tab4:
-    st.header("⚡ Train New Model")
-    st.write("בחר אילו מודלים לאמן והגדר היפר-פרמטרים בסיסיים:")
-
-    model_choices = st.multiselect(
-        "בחר מודלים",
+    st.header(T["training"])
+    model_choices = st.multiselect(T["choose_models"], 
         ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"],
-        default=["RandomForest","XGBoost"]
-    )
+        default=["RandomForest","XGBoost"])
     rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
     xgb_lr = st.slider("XGBoost Learning Rate", 0.01, 0.5, 0.1, 0.01)
 
-    file = st.file_uploader("Upload CSV for retraining", type=["csv"], key="newtrain")
-    if file:
-        new_df = pd.read_csv(file)
-        st.write("New Data Preview:", new_df.head())
-
-        if st.button("Retrain Models"):
-            # Save data
-            new_path = "data/new_train.csv"
-            new_df.to_csv(new_path, index=False)
-
-            # Save config
-            config = {
-                "models": model_choices,
-                "params": {
-                    "rf_trees": rf_trees,
-                    "xgb_lr": xgb_lr
-                }
-            }
-            os.makedirs("assets", exist_ok=True)
-            with open("assets/config.json","w") as f:
-                json.dump(config, f, indent=4)
-
-            # Run pipeline
-            runpy.run_path("app/model_pipeline.py")
-
-            # Load new metrics for immediate comparison
-            with open("assets/metrics.json","r") as f:
-                new_metrics = json.load(f)
-            comp_df = pd.DataFrame(new_metrics).T.reset_index().rename(columns={"index":"Model"})
-            st.subheader("📊 New Training Results")
-            st.dataframe(comp_df)
-
-            st.success("✅ Models retrained! See updated metrics above.")
+    if st.button(T["train"]):
+        config = {"models": model_choices, "params": {"rf_trees": rf_trees, "xgb_lr": xgb_lr}}
+        os.makedirs("assets", exist_ok=True)
+        with open("assets/config.json","w") as f:
+            json.dump(config, f, indent=4)
+        runpy.run_path("app/model_pipeline.py")
+        st.success("✅ Training complete! Reload dashboard for updates.")
