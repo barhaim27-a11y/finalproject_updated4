@@ -922,13 +922,13 @@ if "NeuralNet" in chosen_models:
                 line=dict(dash="dash"), name="Random"
             ))
             st.plotly_chart(fig, use_container_width=True)
-
+            
             # 🟢 Promote option
             from datetime import datetime
             # Update timestamp
             with open("assets/last_updated.txt", "w") as f:
-            f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
+                f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                
             best_new_model = df_comp.index[0]
             if df_comp["roc_auc"].iloc[0] > old_auc:
                 st.success(f"🎉 המודל החדש {best_new_model} עדיף על המודל הישן!")
@@ -936,9 +936,9 @@ if "NeuralNet" in chosen_models:
                     joblib.dump(trained_models[best_new_model], "models/best_model.joblib")
                     with open("assets/metrics.json","w") as f:
                         json.dump(metrics_comp, f)
-                    st.success("✅ New model promoted as best model!")
-            else:
-                st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
+                        st.success("✅ New model promoted as best model!")
+                else:
+                    st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
 
 
 # --- Tab 7: Model History
