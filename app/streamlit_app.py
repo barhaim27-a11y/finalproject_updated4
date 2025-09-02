@@ -82,6 +82,31 @@ with tab1:
     st.subheader("Dataset Preview")
     st.dataframe(df.head())
 
+        # --- סטטיסטיקות על הדאטה ---
+    st.subheader("Dataset Info & Statistics")
+
+    # 1. מספר שורות ועמודות
+    st.write(f"🔹 Rows: {df.shape[0]}, Columns: {df.shape[1]}")
+
+    # 2. בדיקת חסרים
+    missing = df.isnull().sum()
+    st.write("🔹 Missing Values per Column:")
+    st.dataframe(missing[missing > 0] if missing.sum() > 0 else "No missing values ✅")
+
+    # 3. סטטיסטיקות תיאוריות
+    st.write("🔹 Statistical Summary")
+    st.dataframe(df.describe().T)
+
+    # 4. התפלגות היעד
+    st.write("🔹 Target Distribution (Counts)")
+    st.table(y.value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+
+    # 5. קורלציה מול status
+    st.write("🔹 Top Features Correlated with Target")
+    corr_target = df.corr()["status"].abs().sort_values(ascending=False)[1:6]
+    st.table(corr_target)
+
+
     # --- הצגת גרפים מוכנים מתיקיית eda/ ---
     st.subheader("Exploratory Plots")
     eda_dir = "eda"
