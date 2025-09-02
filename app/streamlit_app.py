@@ -27,36 +27,43 @@ import lightgbm as lgb
 from catboost import CatBoostClassifier
 
 # ==============================
-# CONFIG
-# ==============================
-st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="wide")
-
-st.sidebar.title("⚙️ Settings")
-threshold_global = st.sidebar.slider("Decision Threshold (Global)", 0.0, 1.0, 0.5, 0.01)
 # ==============================
 # CONFIG
 # ==============================
 st.set_page_config(page_title="Parkinson’s ML App", page_icon="🧠", layout="wide")
 
+# ==============================
+# Sidebar Settings
+# ==============================
 st.sidebar.title("⚙️ Settings")
 
 # ✅ Theme selector
-theme_choice = st.sidebar.radio("Theme", ["Light", "Dark"], index=0)
+theme_choice = st.sidebar.radio("Theme", ["Light", "Dark"], index=0, key="theme_choice")
 
 # ✅ Language selector
-language_choice = st.sidebar.selectbox("Language", ["English", "עברית", "العربية", "Français"], index=1)
+language_choice = st.sidebar.selectbox(
+    "Language", ["English", "עברית", "العربية", "Français"], index=1, key="lang_choice"
+)
 
 # ✅ Text size
-text_size = st.sidebar.select_slider("Text Size", options=["Small", "Medium", "Large"], value="Medium")
+text_size = st.sidebar.select_slider(
+    "Text Size", options=["Small", "Medium", "Large"], value="Medium", key="text_size"
+)
 
 # ✅ Layout density
-layout_density = st.sidebar.radio("Layout Density", ["Comfortable", "Compact"], index=0)
+layout_density = st.sidebar.radio(
+    "Layout Density", ["Comfortable", "Compact"], index=0, key="layout_density"
+)
 
 # ✅ Toggle advanced EDA
-show_advanced_eda = st.sidebar.checkbox("Show Advanced EDA Visualizations", value=True)
+show_advanced_eda = st.sidebar.checkbox(
+    "Show Advanced EDA Visualizations", value=True, key="eda_toggle"
+)
 
-# ✅ Decision Threshold (global)
-threshold_global = st.sidebar.slider("Decision Threshold (Global)", 0.0, 1.0, 0.5, 0.01)
+# ✅ Decision Threshold (global) → אחד בלבד
+threshold_global = st.sidebar.slider(
+    "Decision Threshold (Global)", 0.0, 1.0, 0.5, 0.01, key="global_threshold"
+)
 
 # ==============================
 # Apply UI Customizations (CSS)
@@ -86,6 +93,7 @@ def apply_custom_style():
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 apply_custom_style()
+
 
 # ==============================
 # Helpers
