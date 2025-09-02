@@ -234,6 +234,7 @@ with tab_dash:
 
     model_options = ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"]
     chosen_models = st.multiselect("בחר מודלים להשוואה", model_options, default=["RandomForest","XGBoost"])
+    
     st.subheader("⚙️ Hyperparameters")
     params = {}
     if "LogisticRegression" in chosen_models:
@@ -285,10 +286,11 @@ with tab_dash:
                                         "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_dash"),"activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_dash"),
                                         "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
                                     }
-                                    if st.button("🚀 Run Comparison"):
-                                        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-                                        trained_models = {}
-                                        metrics_comp = {}
+        if st.button("🚀 Run Comparison"):
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+            trained_models = {}
+            metrics_comp = {}
+            
         for m in chosen_models:
             if m == "LogisticRegression":
                 model = Pipeline([
