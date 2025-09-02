@@ -12,3 +12,4 @@ shap
 streamlit
 openpyxl
 statsmodels
+reportlab
