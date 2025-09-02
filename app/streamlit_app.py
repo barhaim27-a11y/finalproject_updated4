@@ -328,14 +328,6 @@ with tab3:
     st.header("🔮 Prediction")
     threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
 
-    # ✅ בחירת מודל לניבוי
-    available_models = {"Best Model": best_model}
-    if "trained_models" in st.session_state:
-        available_models.update(st.session_state.trained_models)
-
-    model_choice = st.selectbox("בחר מודל לניבוי", list(available_models.keys()))
-    model = available_models[model_choice]
-
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
 
     # --- Manual Input
@@ -344,10 +336,9 @@ with tab3:
         sample = pd.DataFrame([inputs])
 
         if st.button("Predict Sample"):
-            prob = safe_predict_proba(model, sample)[0, 1]
+            prob = safe_predict_proba(best_model, sample)[0, 1]
             pred = int(prob >= threshold)
 
-            # תצוגה ידידותית
             st.subheader("🧾 Prediction Result")
             if pred == 1:
                 st.markdown(f"""
@@ -393,7 +384,7 @@ with tab3:
             st.write("Preview of Uploaded Data:")
             st.dataframe(new_df.head())
 
-            probs = safe_predict_proba(model, new_df)[:, 1]
+            probs = safe_predict_proba(best_model, new_df)[:, 1]
             preds = (probs >= threshold).astype(int)
             new_df["Probability"] = (probs*100).round(1)
             new_df["Prediction"] = preds
@@ -495,64 +486,143 @@ with tab5:
 # --- Tab 6: Train New Model
 with tab4:
     st.header("⚡ Train New Model")
-    model_choices = st.multiselect("Select Models", ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"], default=["RandomForest","XGBoost"])
-    rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
-    xgb_lr = st.slider("XGBoost Learning Rate", 0.01, 0.5, 0.1, 0.01)
 
+    st.markdown("העלה דאטה חדש לאימון, בחר מודלים והגדר פרמטרים – נבצע השוואה מול המודל הנוכחי הטוב ביותר.")
+
+    # ✅ בחירת מודלים
+    model_choices = st.multiselect(
+        "Select Models",
+        ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"],
+        default=["RandomForest","XGBoost"]
+    )
+
+    # ✅ פרמטרים לכל מודל (כמו בדאשבורד)
+    params = {}
+    if "RandomForest" in model_choices:
+        params["RandomForest"] = {
+            "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50),
+            "max_depth": st.slider("RF: Max Depth", 2, 20, 5)
+        }
+    if "XGBoost" in model_choices:
+        params["XGBoost"] = {
+            "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01),
+            "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50)
+        }
+    if "SVM" in model_choices:
+        params["SVM"] = {
+            "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1)
+        }
+
+    # ✅ קובץ דאטה חדש
     file = st.file_uploader("Upload CSV for retraining", type=["csv"], key="newtrain")
     if file:
         new_df = pd.read_csv(file)
         st.write("📂 New Data Preview:", new_df.head())
 
-        if st.button("Retrain Models"):
-            # ✅ שילוב הדאטה החדש עם המקורי
+        if st.button("🚀 Retrain Models"):
+            # 🟢 שילוב הדאטה החדש עם המקורי
             combined_df = pd.concat([df, new_df], ignore_index=True)
-            combined_df.to_csv("data/combined_train.csv", index=False)
+            X_combined = combined_df.drop("status", axis=1)
+            y_combined = combined_df["status"]
 
-            config = {"models": model_choices, "params": {"rf_trees": rf_trees, "xgb_lr": xgb_lr}}
-            os.makedirs("assets", exist_ok=True)
-            with open("assets/config.json","w") as f:
-                json.dump(config, f, indent=4)
-            runpy.run_path("app/model_pipeline.py")
+            X_train, X_test, y_train, y_test = train_test_split(
+                X_combined, y_combined, test_size=0.2, random_state=42, stratify=y_combined
+            )
 
-            with open("assets/metrics.json","r") as f:
-                new_metrics = json.load(f)
+            trained_models = {}
+            metrics_comp = {}
 
-            st.session_state.new_metrics = new_metrics
-            st.session_state.new_best_model = joblib.load("models/best_model.joblib")
+            # 🟢 נאמן את כל המודלים שבחר המשתמש
+            for m in model_choices:
+                if m == "RandomForest":
+                    model = RandomForestClassifier(
+                        n_estimators=params[m]["n_estimators"],
+                        max_depth=params[m]["max_depth"],
+                        random_state=42
+                    )
+                elif m == "XGBoost":
+                    model = xgb.XGBClassifier(
+                        eval_metric="logloss",
+                        n_estimators=params[m]["n_estimators"],
+                        learning_rate=params[m]["learning_rate"],
+                        random_state=42
+                    )
+                elif m == "SVM":
+                    model = Pipeline([("scaler", StandardScaler()), ("clf", SVC(C=params[m]["C"], probability=True, kernel="rbf"))])
+                elif m == "LogisticRegression":
+                    model = Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(max_iter=500))])
+                elif m == "KNN":
+                    model = Pipeline([("scaler", StandardScaler()), ("clf", KNeighborsClassifier(n_neighbors=5))])
+                elif m == "LightGBM":
+                    model = lgb.LGBMClassifier(random_state=42)
+                elif m == "CatBoost":
+                    model = CatBoostClassifier(verbose=0, random_state=42)
+                elif m == "NeuralNet":
+                    model = Pipeline([("scaler", StandardScaler()), ("clf", MLPClassifier(hidden_layer_sizes=(64,32), max_iter=500, random_state=42))])
+                else:
+                    continue
 
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                y_proba = model.predict_proba(X_test)[:, 1]
+
+                acc = accuracy_score(y_test, y_pred)
+                prec = precision_score(y_test, y_pred)
+                rec = recall_score(y_test, y_pred)
+                f1 = f1_score(y_test, y_pred)
+                auc_val = roc_auc_score(y_test, y_proba)
+
+                trained_models[m] = model
+                metrics_comp[m] = {
+                    "accuracy": acc,
+                    "precision": prec,
+                    "recall": rec,
+                    "f1": f1,
+                    "roc_auc": auc_val
+                }
+
+            # 🟢 שמירה ב־session_state לשימוש בטאבים אחרים
+            st.session_state.trained_models = trained_models
+
+            # 🟢 תוצאות
             st.subheader("📊 New Training Results")
-            comp_df = pd.DataFrame(new_metrics).T.reset_index().rename(columns={"index":"Model"})
-            comp_df = comp_df.sort_values("roc_auc", ascending=False)
-            st.dataframe(comp_df.style.highlight_max(axis=0, color="lightgreen"))
+            df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+            df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+            df_comp_display = df_comp.copy()
+            df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+            st.dataframe(df_comp_display)
 
-            # ✅ השוואה מול המודל הישן (תיקון!)
-            old_auc = max([m["roc_auc"] for m in metrics.values()])
-            new_auc = max([m["roc_auc"] for m in new_metrics.values()])
+            # 🟢 השוואה מול המודל הישן (Best Model שנשמר)
+            st.subheader("📈 Comparison with Old Best Model")
+            y_pred_old = safe_predict(best_model, X_test)
+            y_proba_old = safe_predict_proba(best_model, X_test)[:, 1]
+            old_auc = roc_auc_score(y_test, y_proba_old)
 
             col1, col2 = st.columns(2)
             with col1:
                 st.metric("Old Best ROC-AUC", f"{old_auc:.3f}")
             with col2:
-                st.metric("New Best ROC-AUC", f"{new_auc:.3f}")
+                st.metric("New Best ROC-AUC", f"{df_comp['roc_auc'].iloc[0]:.3f}")
 
-            if new_auc > old_auc:
-                st.success("🎉 המודל החדש עדיף על המודל הישן!")
-                if st.button("🚀 Promote New Model"):
-                    shutil.copy("models/best_model.joblib", "models/best_model_promoted.joblib")
-                    with open("assets/metrics.json","w") as f:
-                        json.dump(new_metrics, f)
-                    st.success("✅ New model promoted as best model!")
-
-            # ✅ ROC Curve comparison
-            st.subheader("ROC Curve – Old vs New Best Model")
-            y_pred_prob_old = safe_predict_proba(best_model, X)[:,1]
-            y_pred_prob_new = safe_predict_proba(st.session_state.new_best_model, X)[:,1]
-            fpr_old, tpr_old, _ = roc_curve(y, y_pred_prob_old)
-            fpr_new, tpr_new, _ = roc_curve(y, y_pred_prob_new)
+            # 🟢 ROC Curve comparison
             fig = go.Figure()
+            fpr_old, tpr_old, _ = roc_curve(y_test, y_proba_old)
             fig.add_trace(go.Scatter(x=fpr_old, y=tpr_old, mode="lines", name="Old Best"))
-            fig.add_trace(go.Scatter(x=fpr_new, y=tpr_new, mode="lines", name="New Best"))
+            for m in df_comp.index:
+                y_proba_new = trained_models[m].predict_proba(X_test)[:, 1]
+                fpr_new, tpr_new, _ = roc_curve(y_test, y_proba_new)
+                fig.add_trace(go.Scatter(x=fpr_new, y=tpr_new, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
             fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
             st.plotly_chart(fig, use_container_width=True)
 
+            # 🟢 Promote option
+            best_new_model = df_comp.index[0]
+            if df_comp["roc_auc"].iloc[0] > old_auc:
+                st.success(f"🎉 המודל החדש {best_new_model} עדיף על המודל הישן!")
+                if st.button("🚀 Promote New Model"):
+                    joblib.dump(trained_models[best_new_model], "models/best_model.joblib")
+                    with open("assets/metrics.json","w") as f:
+                        json.dump(metrics_comp, f)
+                    st.success("✅ New model promoted as best model!")
+            else:
+                st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
