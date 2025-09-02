@@ -367,45 +367,45 @@ with tab_dash:
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
                 y_proba = model.predict_proba(X_test)[:, 1]
-
-    acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred)
-    rec = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    auc_val = roc_auc_score(y_test, y_proba)
-
-    trained_models[m] = model
-    metrics_comp[m] = {
-        "accuracy": acc,
-        "precision": prec,
-        "recall": rec,
-        "f1": f1,
-        "roc_auc": auc_val
-    }
-
-    st.subheader("📊 Metrics Comparison")
-    df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
-    df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
-    df_comp_display = df_comp.copy()
-    df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
-    st.dataframe(df_comp_display)
-
-    st.subheader("ROC Curves")
-    fig = go.Figure()
-    for m, model in trained_models.items():
-        y_proba = model.predict_proba(X_test)[:,1]
-        fpr, tpr, _ = roc_curve(y_test, y_proba)
-        fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
-    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Precision-Recall Curves")
-    fig = go.Figure()
-    for m, model in trained_models.items():
-        y_proba = model.predict_proba(X_test)[:,1]
-        prec, rec, _ = precision_recall_curve(y_test, y_proba)
-        fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
-    st.plotly_chart(fig, use_container_width=True)
+                
+                acc = accuracy_score(y_test, y_pred)
+                prec = precision_score(y_test, y_pred)
+                rec = recall_score(y_test, y_pred)
+                f1 = f1_score(y_test, y_pred)
+                auc_val = roc_auc_score(y_test, y_proba)
+                
+                trained_models[m] = model
+                metrics_comp[m] = {
+                    "accuracy": acc,
+                    "precision": prec,
+                    "recall": rec,
+                    "f1": f1,
+                    "roc_auc": auc_val
+                }
+                
+                st.subheader("📊 Metrics Comparison")
+                df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+                df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+                df_comp_display = df_comp.copy()
+                df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+                st.dataframe(df_comp_display)
+                
+                st.subheader("ROC Curves")
+                fig = go.Figure()
+                for m, model in trained_models.items():
+                    y_proba = model.predict_proba(X_test)[:,1]
+                    fpr, tpr, _ = roc_curve(y_test, y_proba)
+                    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
+                    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    st.subheader("Precision-Recall Curves")
+                    fig = go.Figure()
+                    for m, model in trained_models.items():
+                        y_proba = model.predict_proba(X_test)[:,1]
+                        prec, rec, _ = precision_recall_curve(y_test, y_proba)
+                        fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
+                        st.plotly_chart(fig, use_container_width=True)
 
 
 # --- Tab 3: Models
