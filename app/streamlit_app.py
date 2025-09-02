@@ -290,8 +290,7 @@ with tab_dash:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
         trained_models = {}
         metrics_comp = {}
-            
-        for m in chosen_models:
+         for m in chosen_models:
             if m == "LogisticRegression":
                 model = Pipeline([
                     ("scaler", StandardScaler()),
@@ -408,6 +407,8 @@ with tab_dash:
                         prec, rec, _ = precision_recall_curve(y_test, y_proba)
                         fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
                         st.plotly_chart(fig, use_container_width=True)
+            
+       
 
 
 # --- Tab 3: Models
