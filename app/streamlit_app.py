@@ -331,37 +331,82 @@ with tab3:
     threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
 
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
-    if option=="Manual Input":
+
+    # --- Manual Input
+    if option == "Manual Input":
         inputs = {col: st.number_input(col, float(X[col].mean())) for col in X.columns}
         sample = pd.DataFrame([inputs])
+
         if st.button("Predict Sample"):
-            prob = safe_predict_proba(best_model, sample)[0,1]
-            st.progress(prob)
-            st.write(f"Probability: {prob:.2f}")
+            prob = safe_predict_proba(best_model, sample)[0, 1]
+            pred = int(prob >= threshold)
+
+            # תצוגה ידידותית
+            st.subheader("🧾 Prediction Result")
+            if pred == 1:
+                st.markdown(f"""
+                <div style="padding:15px; background-color:#ffe6e6; border-radius:10px; text-align:center">
+                    <h2 style="color:#cc0000">🔴 Parkinson’s Detected</h2>
+                    <p>Probability: <b>{prob*100:.1f}%</b> (Threshold={threshold:.2f})</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="padding:15px; background-color:#e6ffe6; border-radius:10px; text-align:center">
+                    <h2 style="color:#009900">🟢 Healthy</h2>
+                    <p>Probability: <b>{prob*100:.1f}%</b> (Threshold={threshold:.2f})</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Gauge Plot
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=prob*100,
+                title={"text": "Probability of Parkinson’s"},
+                gauge={
+                    "axis": {"range": [0, 100]},
+                    "bar": {"color": "red" if pred == 1 else "green"},
+                    "steps": [
+                        {"range": [0, 30], "color": "#e6ffe6"},
+                        {"range": [30, 70], "color": "#fff5e6"},
+                        {"range": [70, 100], "color": "#ffe6e6"}
+                    ]
+                }
+            ))
+            st.plotly_chart(fig, use_container_width=True)
+
+    # --- File Upload
     else:
-        file = st.file_uploader("Upload CSV or Excel", type=["csv","xlsx"])
+        file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
         if file:
             if file.name.endswith(".csv"):
                 new_df = pd.read_csv(file)
             else:
                 new_df = pd.read_excel(file)
 
-            st.write("Preview:")
+            st.write("Preview of Uploaded Data:")
             st.dataframe(new_df.head())
 
-            probs = safe_predict_proba(best_model, new_df)[:,1]
+            probs = safe_predict_proba(best_model, new_df)[:, 1]
             preds = (probs >= threshold).astype(int)
-            new_df["Probability"] = probs
+            new_df["Probability"] = (probs*100).round(1)
             new_df["Prediction"] = preds
 
-            st.write("Summary of Predictions")
-            st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+            # תקציר תוצאות
+            st.subheader("📊 Prediction Summary")
+            summary = pd.Series(preds).value_counts().rename({0: "Healthy 🟢", 1: "Parkinson’s 🔴"})
+            st.table(summary)
 
-            cm = confusion_matrix(preds, new_df["Prediction"])
-            fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Oranges")
-            st.plotly_chart(fig)
+            # תוצאות מפורטות
+            st.subheader("Detailed Results")
+            st.dataframe(new_df.head(20))
 
+            # הורדות
             st.download_button("📥 Download Predictions (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
+            new_df.to_excel("predictions.xlsx", index=False)
+            with open("predictions.xlsx", "rb") as f:
+                st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
+
 
 # --- Tab 5: Train New Model
 with tab4:
