@@ -253,6 +253,16 @@ with tab2:
     y_pred = safe_predict(best_model, X)
     y_pred_prob = safe_predict_proba(best_model, X)[:, 1]
     cm = confusion_matrix(y, y_pred, labels=[0, 1])
+    
+        fig = go.Figure(data=go.Heatmap(
+        z=cm,
+        x=["Healthy", "Parkinson’s"],
+        y=["Healthy", "Parkinson’s"],
+        colorscale="Oranges",
+        text=cm,
+        texttemplate="%{text}",
+        showscale=True
+    ))
     fig.update_layout(title="Confusion Matrix", xaxis_title="Predicted", yaxis_title="True")
     st.plotly_chart(fig, use_container_width=True)
 
