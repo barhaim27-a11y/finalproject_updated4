@@ -407,7 +407,7 @@ for m in chosen_models:
         "roc_auc": auc_val
     }
 
-        st.subheader("📊 Metrics Comparison")
+    st.subheader("📊 Metrics Comparison")
         df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
         df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
         df_comp_display = df_comp.copy()
