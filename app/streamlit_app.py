@@ -375,37 +375,45 @@ with tab3:
             ))
             st.plotly_chart(fig, use_container_width=True)
 
-    # --- File Upload
-    else:
-        file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
-        if file:
-            if file.name.endswith(".csv"):
-                new_df = pd.read_csv(file)
-            else:
-                new_df = pd.read_excel(file)
+ 
+# --- File Upload
+else:
+    file = st.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
+    if file:
+        if file.name.endswith(".csv"):
+            new_df = pd.read_csv(file)
+        else:
+            new_df = pd.read_excel(file)
 
-            st.write("Preview of Uploaded Data:")
-            st.dataframe(new_df.head())
+        st.write("Preview of Uploaded Data:")
+        st.dataframe(new_df.head())
 
-            probs = safe_predict_proba(best_model, new_df)[:, 1]
-            preds = (probs >= threshold).astype(int)
-            new_df["Probability"] = (probs*100).round(1)
-            new_df["Prediction"] = preds
+        probs = safe_predict_proba(best_model, new_df)[:, 1]
+        preds = (probs >= threshold).astype(int)
+        new_df["Probability"] = (probs*100).round(1)
+        new_df["Prediction"] = preds
 
-            # תקציר תוצאות
-            st.subheader("📊 Prediction Summary")
-            summary = pd.Series(preds).value_counts().rename({0: "Healthy 🟢", 1: "Parkinson’s 🔴"})
-            st.table(summary)
+        # עמודת תוצאה ידידותית
+        new_df["Result"] = [
+            f"🟢 Healthy ({p:.1f}%)" if pred == 0 else f"🔴 Parkinson’s ({p:.1f}%)"
+            for pred, p in zip(preds, new_df["Probability"])
+        ]
 
-            # תוצאות מפורטות
-            st.subheader("Detailed Results")
-            st.dataframe(new_df.head(20))
+        # תקציר תוצאות
+        st.subheader("📊 Prediction Summary")
+        summary = pd.Series(preds).value_counts().rename({0: "Healthy 🟢", 1: "Parkinson’s 🔴"})
+        st.table(summary)
 
-            # הורדות
-            st.download_button("📥 Download Predictions (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
-            new_df.to_excel("predictions.xlsx", index=False)
-            with open("predictions.xlsx", "rb") as f:
-                st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
+        # תוצאות מפורטות
+        st.subheader("Detailed Results")
+        st.dataframe(new_df[["Result"] + [c for c in new_df.columns if c not in ["Result"]]].head(20))
+
+        # הורדות
+        st.download_button("📥 Download Predictions (CSV)", new_df.to_csv(index=False).encode("utf-8"), "predictions.csv", "text/csv")
+        new_df.to_excel("predictions.xlsx", index=False)
+        with open("predictions.xlsx", "rb") as f:
+            st.download_button("📥 Download Predictions (Excel)", f, "predictions.xlsx", "application/vnd.ms-excel")
+
 
 
 # --- Tab 5: Train New Model
