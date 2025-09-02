@@ -81,6 +81,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
+
     st.subheader("Dataset Preview")
     st.dataframe(df.head())
 
@@ -119,7 +120,7 @@ with tab1:
     for title, filename in eda_plots.items():
         path = os.path.join(eda_dir, filename)
         if os.path.exists(path):
-            with st.expander(title, expanded=True):
+            with st.expander(title, expanded=False):
                 st.image(path, use_column_width=True)
 
 # --- Tab 2: Models
@@ -136,29 +137,28 @@ with tab2:
         if k in best_row:
             kpi_cols[i].metric(k.capitalize(), f"{best_row[k]:.3f}")
 
-    # === Bar chart ROC-AUC ===
+    # === ROC-AUC bar chart ===
     if "roc_auc" in df_metrics.columns:
         st.bar_chart(df_metrics.set_index("Model")["roc_auc"])
 
-    # Best Model
-    best_name = best_row["Model"]
-    st.success(f"🏆 Best Model: {best_name}")
-
-    # === ROC & PR Comparison for all models ===
-    st.subheader("ROC & PR Curves (All Models)")
+    # === ROC curves for all models (comparison) ===
+    st.subheader("ROC Curves (All Models)")
     fig, ax = plt.subplots()
-    for _, row in df_metrics.iterrows():
-        model_path = "models/best_model.joblib" if row["Model"] == best_name else None
-        if model_path and os.path.exists(model_path):
-            model = best_model
-            y_pred_prob = safe_predict_proba(model, X)[:,1]
-            fpr, tpr, _ = roc_curve(y, y_pred_prob)
-            ax.plot(fpr, tpr, label=f"{row['Model']} (AUC={row['roc_auc']:.2f})")
+    for model_name in df_metrics["Model"]:
+        try:
+            # נטען מחדש אם זה המודל הטוב ביותר
+            model = best_model if model_name == best_row["Model"] else None
+            if model:
+                y_pred_prob = safe_predict_proba(model, X)[:,1]
+                fpr, tpr, _ = roc_curve(y, y_pred_prob)
+                ax.plot(fpr, tpr, label=f"{model_name} (AUC={df_metrics.loc[df_metrics['Model']==model_name,'roc_auc'].values[0]:.2f})")
+        except Exception:
+            pass
     ax.plot([0,1],[0,1],'k--')
     ax.legend()
     st.pyplot(fig)
 
-    # Confusion Matrix (Best Model)
+    # Confusion Matrix
     st.subheader("Confusion Matrix (Best Model)")
     y_pred = safe_predict(best_model, X)
     cm = confusion_matrix(y, y_pred)
@@ -175,7 +175,7 @@ with tab2:
         sns.barplot(x=importances, y=importances.index, ax=ax)
         st.pyplot(fig)
 
-    # SHAP Summary Plot
+    # SHAP Summary
     shap_path = os.path.join("assets","shap_summary.png")
     if os.path.exists(shap_path):
         st.subheader("Explainability (SHAP)")
@@ -212,12 +212,28 @@ with tab3:
             st.write("🔹 Prediction Summary")
             st.table(new_df["Prediction"].value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
 
+            # Confusion Matrix with chosen threshold
+            st.subheader("Confusion Matrix with Threshold")
+            cm = confusion_matrix(new_df["Prediction"], preds)
+            fig, ax = plt.subplots()
+            disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+            disp.plot(cmap="Oranges", values_format="d", ax=ax)
+            st.pyplot(fig)
+
+            # Download results
+            csv_data = new_df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download Predictions (CSV)", csv_data, "predictions.csv", "text/csv")
+
 # --- Tab 4: Train New Model
 with tab4:
     st.header("⚡ Train New Model")
     st.write("בחר אילו מודלים לאמן והגדר היפר-פרמטרים בסיסיים:")
 
-    model_choices = st.multiselect("בחר מודלים", ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"], default=["RandomForest","XGBoost"])
+    model_choices = st.multiselect(
+        "בחר מודלים",
+        ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"],
+        default=["RandomForest","XGBoost"]
+    )
     rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
     xgb_lr = st.slider("XGBoost Learning Rate", 0.01, 0.5, 0.1, 0.01)
 
@@ -227,9 +243,30 @@ with tab4:
         st.write("New Data Preview:", new_df.head())
 
         if st.button("Retrain Models"):
+            # Save data
             new_path = "data/new_train.csv"
             new_df.to_csv(new_path, index=False)
-            # ⚠️ כאן ניתן לשלב קריאה ל-pipeline מעודכן שיקח את הפרמטרים
+
+            # Save config
+            config = {
+                "models": model_choices,
+                "params": {
+                    "rf_trees": rf_trees,
+                    "xgb_lr": xgb_lr
+                }
+            }
+            os.makedirs("assets", exist_ok=True)
+            with open("assets/config.json","w") as f:
+                json.dump(config, f, indent=4)
+
+            # Run pipeline
             runpy.run_path("app/model_pipeline.py")
 
-            st.success("✅ Models retrained! Reload the app to see updates.")
+            # Load new metrics for immediate comparison
+            with open("assets/metrics.json","r") as f:
+                new_metrics = json.load(f)
+            comp_df = pd.DataFrame(new_metrics).T.reset_index().rename(columns={"index":"Model"})
+            st.subheader("📊 New Training Results")
+            st.dataframe(comp_df)
+
+            st.success("✅ Models retrained! See updated metrics above.")
