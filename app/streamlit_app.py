@@ -249,19 +249,21 @@ with tab2:
     best_row = df_metrics.iloc[0]
     st.table(pd.DataFrame(best_row).T)
 
-    # Confusion Matrix
+    # Confusion Matrix (Plotly Heatmap)
     y_pred = safe_predict(best_model, X)
     y_pred_prob = safe_predict_proba(best_model, X)[:, 1]
     cm = confusion_matrix(y, y_pred, labels=[0, 1])
 
-    fig = ff.create_annotated_heatmap(
-        z=cm.tolist(),
+    fig = go.Figure(data=go.Heatmap(
+        z=cm,
         x=["Healthy", "Parkinson’s"],
         y=["Healthy", "Parkinson’s"],
-        annotation_text=[[str(cell) for cell in row] for row in cm],
         colorscale="Oranges",
+        text=cm,
+        texttemplate="%{text}",
         showscale=True
-    )
+    ))
+    fig.update_layout(title="Confusion Matrix", xaxis_title="Predicted", yaxis_title="True")
     st.plotly_chart(fig, use_container_width=True)
 
     # ROC Curve
@@ -270,6 +272,14 @@ with tab2:
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"ROC curve (AUC={roc_auc:.2f})"))
     fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(dash="dash"), name="Random"))
+    fig.update_layout(title="ROC Curve")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Precision-Recall Curve
+    precision, recall, _ = precision_recall_curve(y, y_pred_prob)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=recall, y=precision, mode="lines", name="PR Curve"))
+    fig.update_layout(title="Precision-Recall Curve", xaxis_title="Recall", yaxis_title="Precision")
     st.plotly_chart(fig, use_container_width=True)
 
     # Learning Curve
@@ -282,7 +292,37 @@ with tab2:
                              mode="lines+markers", name="Train"))
     fig.add_trace(go.Scatter(x=train_sizes, y=np.mean(test_scores, axis=1),
                              mode="lines+markers", name="Validation"))
+    fig.update_layout(title="Learning Curve", xaxis_title="Training Samples", yaxis_title="Score")
     st.plotly_chart(fig, use_container_width=True)
+
+    # Cumulative Gain Curve
+    st.subheader("Cumulative Gain Curve")
+    gains = np.cumsum(np.sort(y_pred_prob)[::-1]) / sum(y)
+    percents = np.linspace(0, 1, len(gains))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=percents, y=gains, mode="lines", name="Model"))
+    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random", line=dict(dash="dash")))
+    fig.update_layout(title="Cumulative Gain Curve", xaxis_title="Proportion of Sample", yaxis_title="Proportion of Positives")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Lift Curve
+    st.subheader("Lift Curve")
+    lift = gains / percents
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=percents[1:], y=lift[1:], mode="lines", name="Lift"))
+    fig.update_layout(title="Lift Curve", xaxis_title="Proportion of Sample", yaxis_title="Lift")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # KS Curve
+    st.subheader("KS Curve")
+    fpr, tpr, thresholds = roc_curve(y, y_pred_prob)
+    ks_stat = max(tpr - fpr)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=thresholds, y=tpr, mode="lines", name="TPR"))
+    fig.add_trace(go.Scatter(x=thresholds, y=fpr, mode="lines", name="FPR"))
+    fig.update_layout(title=f"KS Curve (KS={ks_stat:.2f})", xaxis_title="Threshold", yaxis_title="Rate")
+    st.plotly_chart(fig, use_container_width=True)
+
 
 
 # --- Tab 4: Prediction
