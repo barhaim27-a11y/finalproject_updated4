@@ -223,7 +223,6 @@ with tab_dash:
         }
 
     if st.button("🚀 Run Comparison"):
-        with st.spinner("🚀 Training models... This may take a while"): 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
         trained_models = {}
@@ -294,7 +293,7 @@ with tab_dash:
             prec, rec, _ = precision_recall_curve(y_test, y_proba)
             fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
         st.plotly_chart(fig, use_container_width=True)
-        st.success("✅ Training finished!")
+      
 
 # --- Tab 3: Models
 with tab2:
