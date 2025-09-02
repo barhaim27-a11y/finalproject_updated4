@@ -789,90 +789,81 @@ if "NeuralNet" in chosen_models:
 
             trained_models = {}
             metrics_comp = {}
-
             # 🟢 נאמן את כל המודלים שבחר המשתמש
-for m in model_choices:
-    if m == "LogisticRegression":
-        model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", LogisticRegression(
-                C=params[m]["C"],
-                max_iter=params[m]["max_iter"]
-            ))
-        ])
-
-    elif m == "RandomForest":
-        model = RandomForestClassifier(
-            n_estimators=params[m]["n_estimators"],
-            max_depth=params[m]["max_depth"],
-            min_samples_split=params[m]["min_samples_split"],
-            min_samples_leaf=params[m]["min_samples_leaf"],
-            random_state=42
-        )
-
-    elif m == "XGBoost":
-        model = xgb.XGBClassifier(
-            eval_metric="logloss",
-            n_estimators=params[m]["n_estimators"],
-            learning_rate=params[m]["learning_rate"],
-            max_depth=params[m]["max_depth"],
-            subsample=params[m]["subsample"],
-            colsample_bytree=params[m]["colsample_bytree"],
-            random_state=42
-        )
-
-    elif m == "LightGBM":
-        model = lgb.LGBMClassifier(
-            n_estimators=params[m]["n_estimators"],
-            learning_rate=params[m]["learning_rate"],
-            num_leaves=params[m]["num_leaves"],
-            max_depth=params[m]["max_depth"],
-            random_state=42
-        )
-
-    elif m == "CatBoost":
-        model = CatBoostClassifier(
-            iterations=params[m]["iterations"],
-            depth=params[m]["depth"],
-            learning_rate=params[m]["learning_rate"],
-            verbose=0,
-            random_state=42
-        )
-
-    elif m == "SVM":
-        model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", SVC(
-                C=params[m]["C"],
-                kernel=params[m]["kernel"],
-                gamma=params[m]["gamma"],
-                probability=True
-            ))
-        ])
-
-    elif m == "KNN":
-        model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", KNeighborsClassifier(
-                n_neighbors=params[m]["n_neighbors"],
-                weights=params[m]["weights"]
-            ))
-        ])
-
-    elif m == "NeuralNet":
-        hidden_layers = tuple(map(int, params[m]["hidden_layer_sizes"].split(",")))
-        model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", MLPClassifier(
-                hidden_layer_sizes=hidden_layers,
-                activation=params[m]["activation"],
-                max_iter=params[m]["max_iter"],
+    for m in model_choices:
+        if m == "LogisticRegression":
+            model = Pipeline([
+                ("scaler", StandardScaler()),
+                ("clf", LogisticRegression(
+                    C=params[m]["C"],
+                    max_iter=params[m]["max_iter"]
+                ))
+            ])
+        elif m == "RandomForest":
+            model = RandomForestClassifier(
+                n_estimators=params[m]["n_estimators"],
+                max_depth=params[m]["max_depth"],
+                min_samples_split=params[m]["min_samples_split"],
+                min_samples_leaf=params[m]["min_samples_leaf"],
                 random_state=42
-            ))
-        ])
-
-    else:
-        continue
+            )
+        elif m == "XGBoost":
+            model = xgb.XGBClassifier(
+                eval_metric="logloss",
+                n_estimators=params[m]["n_estimators"],
+                learning_rate=params[m]["learning_rate"],
+                max_depth=params[m]["max_depth"],
+                subsample=params[m]["subsample"],
+                colsample_bytree=params[m]["colsample_bytree"],
+                random_state=42
+            )
+        elif m == "LightGBM":
+            model = lgb.LGBMClassifier(
+                n_estimators=params[m]["n_estimators"],
+                learning_rate=params[m]["learning_rate"],
+                num_leaves=params[m]["num_leaves"],
+                max_depth=params[m]["max_depth"],
+                random_state=42
+            )
+        elif m == "CatBoost":
+            model = CatBoostClassifier(
+                iterations=params[m]["iterations"],
+                depth=params[m]["depth"],
+                learning_rate=params[m]["learning_rate"],
+                verbose=0,
+                random_state=42
+            )
+        elif m == "SVM":
+            model = Pipeline([
+                ("scaler", StandardScaler()),
+                ("clf", SVC(
+                    C=params[m]["C"],
+                    kernel=params[m]["kernel"],
+                    gamma=params[m]["gamma"],
+                    probability=True
+                ))
+            ])
+        elif m == "KNN":
+            model = Pipeline([
+                ("scaler", StandardScaler()),
+                ("clf", KNeighborsClassifier(
+                    n_neighbors=params[m]["n_neighbors"],
+                    weights=params[m]["weights"]
+                ))
+            ])
+        elif m == "NeuralNet":
+            hidden_layers = tuple(map(int, params[m]["hidden_layer_sizes"].split(",")))
+            model = Pipeline([
+                ("scaler", StandardScaler()),
+                ("clf", MLPClassifier(
+                    hidden_layer_sizes=hidden_layers,
+                    activation=params[m]["activation"],
+                    max_iter=params[m]["max_iter"],
+                    random_state=42
+                ))
+            ])
+        else:
+            continue
 
     # אימון והערכת ביצועים
     model.fit(X_train, y_train)
