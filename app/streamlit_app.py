@@ -730,18 +730,29 @@ with tab_hist:
 # --- Tab 8: Explainability
 with tab_explain:
     st.header("🧠 Model Explainability")
-    if hasattr(best_model,"feature_importances_"):
+
+    # Feature Importance (אם יש)
+    if hasattr(best_model, "feature_importances_"):
         fi = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
         st.bar_chart(fi)
+
+    # SHAP
     try:
-        explainer = shap.Explainer(best_model, X)
+        model_to_explain = best_model
+        if isinstance(best_model, Pipeline):
+            # נשלוף את ה־estimator האחרון
+            model_to_explain = best_model.named_steps.get("clf", best_model)
+
+        explainer = shap.Explainer(model_to_explain, X)
         shap_values = explainer(X)
+
         st.write("SHAP Summary Plot")
         fig, ax = plt.subplots()
         shap.summary_plot(shap_values, X, show=False)
         st.pyplot(fig)
     except Exception as e:
         st.warning(f"SHAP not available: {e}")
+
 
 # --- Tab 9: About
 with tab_about:
