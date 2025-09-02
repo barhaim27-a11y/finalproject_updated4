@@ -153,17 +153,18 @@ metrics = st.session_state.metrics
 # ==============================
 # Tabs
 # ==============================
-tab1, tab_dash, tab2, tab3, tab5, tab4, tab_hist, tab_explain, tab_about = st.tabs([
+tab1, tab_dash, tab2, tab3, tab5, tab4, tab_history, tab_explain, tab_about = st.tabs([
     "📊 Data & EDA", 
     "📈 Dashboard",
     "🤖 Models", 
     "🔮 Prediction", 
     "🧪 Test Evaluation",
     "⚡ Train New Model",
-    "🕑 Model History",
+    "📜 Model History",
     "🧠 Explainability",
     "ℹ️ About"
 ])
+
 
 # --- Tab 1: Data & EDA
 with tab1:
