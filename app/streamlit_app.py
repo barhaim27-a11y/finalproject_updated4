@@ -864,12 +864,11 @@ if "NeuralNet" in chosen_models:
             ])
         else:
             continue
-
-    # אימון והערכת ביצועים
+            # אימון והערכת ביצועים
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
-
+    
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred)
     rec = recall_score(y_test, y_pred)
@@ -884,40 +883,40 @@ if "NeuralNet" in chosen_models:
         "f1": f1,
         "roc_auc": auc_val
     }
-            # 🟢 שמירה ב־session_state
-            st.session_state.trained_models = trained_models
-
-            # 🟢 תוצאות
-            st.subheader("📊 New Training Results")
-            df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
-            df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
-            df_comp_display = df_comp.copy()
-            df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
-            st.dataframe(df_comp_display)
-
-            # 🟢 השוואה מול המודל הישן
-            st.subheader("📈 Comparison with Old Best Model")
-            y_pred_old = safe_predict(best_model, X_test)
-            y_proba_old = safe_predict_proba(best_model, X_test)[:, 1]
-            old_auc = roc_auc_score(y_test, y_proba_old)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Old Best ROC-AUC", f"{old_auc:.3f}")
-            with col2:
-                st.metric("New Best ROC-AUC", f"{df_comp['roc_auc'].iloc[0]:.3f}")
-
-            # 🟢 ROC Curve comparison
-            fig = go.Figure()
-            fpr_old, tpr_old, _ = roc_curve(y_test, y_proba_old)
-            fig.add_trace(go.Scatter(x=fpr_old, y=tpr_old, mode="lines", name="Old Best"))
-            for m in df_comp.index:
-                y_proba_new = trained_models[m].predict_proba(X_test)[:, 1]
-                fpr_new, tpr_new, _ = roc_curve(y_test, y_proba_new)
-                fig.add_trace(go.Scatter(
-                    x=fpr_new, y=tpr_new, mode="lines",
-                    name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"
-                ))
+    # 🟢 שמירה ב־session_state
+    st.session_state.trained_models = trained_models
+    
+    # 🟢 תוצאות
+    st.subheader("📊 New Training Results")
+    df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+    df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+    df_comp_display = df_comp.copy()
+    df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+    st.dataframe(df_comp_display)
+    
+    # 🟢 השוואה מול המודל הישן
+    st.subheader("📈 Comparison with Old Best Model")
+    y_pred_old = safe_predict(best_model, X_test)
+    y_proba_old = safe_predict_proba(best_model, X_test)[:, 1]
+    old_auc = roc_auc_score(y_test, y_proba_old)
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Old Best ROC-AUC", f"{old_auc:.3f}")
+    with col2:
+        st.metric("New Best ROC-AUC", f"{df_comp['roc_auc'].iloc[0]:.3f}")
+        
+     # 🟢 ROC Curve comparison
+        fig = go.Figure()
+        fpr_old, tpr_old, _ = roc_curve(y_test, y_proba_old)
+        fig.add_trace(go.Scatter(x=fpr_old, y=tpr_old, mode="lines", name="Old Best"))
+        for m in df_comp.index:
+            y_proba_new = trained_models[m].predict_proba(X_test)[:, 1]
+            fpr_new, tpr_new, _ = roc_curve(y_test, y_proba_new)
+            fig.add_trace(go.Scatter(
+                x=fpr_new, y=tpr_new, mode="lines",
+                name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"
+            ))
             fig.add_trace(go.Scatter(
                 x=[0,1], y=[0,1], mode="lines",
                 line=dict(dash="dash"), name="Random"
@@ -940,6 +939,7 @@ if "NeuralNet" in chosen_models:
                     st.success("✅ New model promoted as best model!")
             else:
                 st.info("המודל הישן עדיין עדיף. לא עודכן Best Model.")
+
 
 # --- Tab 7: Model History
 with tab_hist:
