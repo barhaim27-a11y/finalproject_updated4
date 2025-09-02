@@ -476,7 +476,7 @@ with tab5:
 
 
 # --- Tab 6: Train New Model
-with tab5:
+with tab4:
     st.header("⚡ Train New Model")
     model_choices = st.multiselect("Select Models", ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"], default=["RandomForest","XGBoost"])
     rf_trees = st.slider("RandomForest Trees", 50, 500, 200, 50)
