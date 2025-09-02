@@ -191,7 +191,6 @@ tab1, tab_dash, tab2, tab3, tab5, tab4, tab_hist, tab_explain, tab_about = st.ta
     "ℹ️ About"
 ])
 
-
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
@@ -236,72 +235,60 @@ with tab_dash:
     model_options = ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"]
     chosen_models = st.multiselect("בחר מודלים להשוואה", model_options, default=["RandomForest","XGBoost"])
     st.subheader("⚙️ Hyperparameters")
-params = {}
-
-if "LogisticRegression" in chosen_models:
-    params["LogisticRegression"] = {
-        "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_dash"),
-        "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_dash")
-    }
-
-if "RandomForest" in chosen_models:
-    params["RandomForest"] = {
-        "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_dash"),
-        "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_dash"),
-        "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_dash"),
-        "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_dash")
-    }
-
-if "XGBoost" in chosen_models:
-    params["XGBoost"] = {
-        "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_dash"),
-        "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_dash"),
-        "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_dash"),
-        "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_dash"),
-        "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_dash")
-    }
-
-if "LightGBM" in chosen_models:
-    params["LightGBM"] = {
-        "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_dash"),
-        "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_dash"),
-        "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_dash"),
-        "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_dash")
-    }
-
-if "CatBoost" in chosen_models:
-    params["CatBoost"] = {
-        "iterations": st.slider("CatBoost: Iterations", 100, 2000, 500, 100, key="cat_iters_dash"),
-        "depth": st.slider("CatBoost: Depth", 2, 12, 6, key="cat_depth_dash"),
-        "learning_rate": st.slider("CatBoost: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="cat_lr_dash")
-    }
-
-if "SVM" in chosen_models:
-    params["SVM"] = {
-        "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_dash"),
-        "kernel": st.selectbox("SVM: Kernel", ["rbf", "linear", "poly"], index=0, key="svm_kernel_dash"),
-        "gamma": st.selectbox("SVM: Gamma", ["scale", "auto"], index=0, key="svm_gamma_dash")
-    }
-
-if "KNN" in chosen_models:
-    params["KNN"] = {
-        "n_neighbors": st.slider("KNN: Neighbors", 1, 20, 5, key="knn_neighbors_dash"),
-        "weights": st.selectbox("KNN: Weights", ["uniform", "distance"], index=0, key="knn_weights_dash")
-    }
-
-if "NeuralNet" in chosen_models:
-    params["NeuralNet"] = {
-        "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_dash"),
-        "activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_dash"),
-        "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
-    }
-
-
-    if st.button("🚀 Run Comparison"):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-
-        trained_models = {}
-        metrics_comp = {}
+    params = {}
+    if "LogisticRegression" in chosen_models:
+        params["LogisticRegression"] = {
+            "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_dash"),
+            "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_dash")
+        }
+        if "RandomForest" in chosen_models:
+            params["RandomForest"] = {
+                "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_dash"),
+                "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_dash"),
+                "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_dash"),
+                "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_dash")
+            }
+            if "XGBoost" in chosen_models:
+                params["XGBoost"] = {
+                    "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_dash"),
+                    "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_dash"),
+                    "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_dash"),
+                    "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_dash"),
+                    "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_dash")
+                }
+                if "LightGBM" in chosen_models:
+                    params["LightGBM"] = {
+                        "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_dash"),
+                        "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_dash"),
+                        "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_dash"),
+                        "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_dash")
+                    }
+                    if "CatBoost" in chosen_models:
+                        params["CatBoost"] = {
+                            "iterations": st.slider("CatBoost: Iterations", 100, 2000, 500, 100, key="cat_iters_dash"),
+                            "depth": st.slider("CatBoost: Depth", 2, 12, 6, key="cat_depth_dash"),
+                            "learning_rate": st.slider("CatBoost: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="cat_lr_dash")
+                        }
+                        if "SVM" in chosen_models:
+                            params["SVM"] = {
+                                "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_dash"),
+                                "kernel": st.selectbox("SVM: Kernel", ["rbf", "linear", "poly"], index=0, key="svm_kernel_dash"),
+                                "gamma": st.selectbox("SVM: Gamma", ["scale", "auto"], index=0, key="svm_gamma_dash")
+                            }
+                            if "KNN" in chosen_models:
+                                params["KNN"] = {
+                                    "n_neighbors": st.slider("KNN: Neighbors", 1, 20, 5, key="knn_neighbors_dash"),
+                                    "weights": st.selectbox("KNN: Weights", ["uniform", "distance"], index=0, key="knn_weights_dash")
+                                }
+                                if "NeuralNet" in chosen_models:
+                                    params["NeuralNet"] = {
+                                        "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_dash"),"activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_dash"),
+                                        "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
+                                    }
+                                    if st.button("🚀 Run Comparison"):
+                                        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+                                        trained_models = {}
+                                        metrics_comp = {}
         
     for m in chosen_models:
         if m == "LogisticRegression":
@@ -420,6 +407,7 @@ if "NeuralNet" in chosen_models:
         prec, rec, _ = precision_recall_curve(y_test, y_proba)
         fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
     st.plotly_chart(fig, use_container_width=True)
+
 
 # --- Tab 3: Models
 with tab2:
