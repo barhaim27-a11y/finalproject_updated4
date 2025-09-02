@@ -254,8 +254,14 @@ with tab2:
     y_pred_prob = safe_predict_proba(best_model, X)[:,1]
 
     # Confusion Matrix
-    cm = confusion_matrix(y, y_pred)
-    fig = ff.create_annotated_heatmap(cm, x=["Healthy","Parkinson’s"], y=["Healthy","Parkinson’s"], colorscale="Blues")
+    cm = confusion_matrix(y, y_pred, labels=[0, 1])
+    fig = ff.create_annotated_heatmap(
+    z=cm,
+    x=["Healthy", "Parkinson’s"],
+    y=["Healthy", "Parkinson’s"],
+    colorscale="Oranges",
+    showscale=True
+)
     st.plotly_chart(fig, use_container_width=True)
 
     # ROC Curve
