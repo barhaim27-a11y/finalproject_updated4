@@ -289,15 +289,15 @@ with tab_dash:
                                         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
                                         trained_models = {}
                                         metrics_comp = {}
-  for m in chosen_models:
-    if m == "LogisticRegression":
-        model = Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", LogisticRegression(
-                C=params.get(m, {}).get("C", 1.0),
-                max_iter=params.get(m, {}).get("max_iter", 500)
-            ))
-        ])
+        for m in chosen_models:
+            if m == "LogisticRegression":
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("clf", LogisticRegression(
+                        C=params.get(m, {}).get("C", 1.0),
+                        max_iter=params.get(m, {}).get("max_iter", 500)
+                    ))
+                ])
     elif m == "RandomForest":
         model = RandomForestClassifier(
             n_estimators=params.get(m, {}).get("n_estimators", 200),
