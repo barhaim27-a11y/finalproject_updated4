@@ -175,7 +175,67 @@ else:
     last_updated = "Unknown"
 
 st.sidebar.markdown(f"🕒 **Model Last Updated:** {last_updated}")
-st.subheader("⚙️ Hyperparameters")
+
+# ==============================
+# Tabs
+# ==============================
+tab1, tab_dash, tab2, tab3, tab5, tab4, tab_hist, tab_explain, tab_about = st.tabs([
+    "📊 Data & EDA", 
+    "📈 Dashboard",
+    "🤖 Models", 
+    "🔮 Prediction", 
+    "🧪 Test Evaluation",
+    "⚡ Train New Model",
+    "🕑 Model History",
+    "🧠 Explainability",
+    "ℹ️ About"
+])
+
+
+# --- Tab 1: Data & EDA
+with tab1:
+    st.header("📊 Data & Exploratory Data Analysis")
+    st.subheader("Dataset Preview")
+    st.dataframe(df.head())
+
+    st.subheader("Dataset Info & Statistics")
+    st.write(f"🔹 Rows: {df.shape[0]}, Columns: {df.shape[1]}")
+    missing = df.isnull().sum()
+    if missing.sum() > 0:
+        st.warning("Missing Values detected:")
+        st.dataframe(missing[missing > 0])
+    else:
+        st.success("No missing values ✅")
+    st.dataframe(df.describe().T)
+    st.table(y.value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
+
+    st.write("🔹 Top Features Correlated with Target")
+    corr_target = df.corr()["status"].abs().sort_values(ascending=False)[1:6]
+    st.table(corr_target)
+
+    st.subheader("Exploratory Plots")
+    eda_dir = "eda"
+    eda_plots = {
+        "Target Distribution (Count & Pie)": "target_distribution_combo.png",
+        "Correlation Heatmap": "corr_heatmap.png",
+        "Pairplot of Top Features": "pairplot_top_features.png",
+        "Histograms & Violin Plots": "distributions_violin.png",
+        "PCA Projection": "pca.png",
+        "t-SNE Projection": "tsne.png"
+    }
+    for title, filename in eda_plots.items():
+        path = os.path.join(eda_dir, filename)
+        if os.path.exists(path):
+            with st.expander(title, expanded=False):
+                st.image(path, use_column_width=True)
+
+# --- Tab 2: Dashboard         
+with tab_dash:
+    st.header("📈 Interactive Dashboard – Compare Models")
+
+    model_options = ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"]
+    chosen_models = st.multiselect("בחר מודלים להשוואה", model_options, default=["RandomForest","XGBoost"])
+    st.subheader("⚙️ Hyperparameters")
 params = {}
 
 if "LogisticRegression" in chosen_models:
@@ -468,69 +528,6 @@ if st.button("📄 Download Full Report (PDF)"):
     c.save()
     st.download_button("📥 Download Report PDF", pdf_buffer.getvalue(),
                        file_name="report.pdf", mime="application/pdf")
-
-
-# ==============================
-# Tabs
-# ==============================
-tab1, tab_dash, tab2, tab3, tab5, tab4, tab_hist, tab_explain, tab_about = st.tabs([
-    "📊 Data & EDA", 
-    "📈 Dashboard",
-    "🤖 Models", 
-    "🔮 Prediction", 
-    "🧪 Test Evaluation",
-    "⚡ Train New Model",
-    "🕑 Model History",
-    "🧠 Explainability",
-    "ℹ️ About"
-])
-
-
-# --- Tab 1: Data & EDA
-with tab1:
-    st.header("📊 Data & Exploratory Data Analysis")
-    st.subheader("Dataset Preview")
-    st.dataframe(df.head())
-
-    st.subheader("Dataset Info & Statistics")
-    st.write(f"🔹 Rows: {df.shape[0]}, Columns: {df.shape[1]}")
-    missing = df.isnull().sum()
-    if missing.sum() > 0:
-        st.warning("Missing Values detected:")
-        st.dataframe(missing[missing > 0])
-    else:
-        st.success("No missing values ✅")
-    st.dataframe(df.describe().T)
-    st.table(y.value_counts().rename({0:"Healthy",1:"Parkinson’s"}))
-
-    st.write("🔹 Top Features Correlated with Target")
-    corr_target = df.corr()["status"].abs().sort_values(ascending=False)[1:6]
-    st.table(corr_target)
-
-    st.subheader("Exploratory Plots")
-    eda_dir = "eda"
-    eda_plots = {
-        "Target Distribution (Count & Pie)": "target_distribution_combo.png",
-        "Correlation Heatmap": "corr_heatmap.png",
-        "Pairplot of Top Features": "pairplot_top_features.png",
-        "Histograms & Violin Plots": "distributions_violin.png",
-        "PCA Projection": "pca.png",
-        "t-SNE Projection": "tsne.png"
-    }
-    for title, filename in eda_plots.items():
-        path = os.path.join(eda_dir, filename)
-        if os.path.exists(path):
-            with st.expander(title, expanded=False):
-                st.image(path, use_column_width=True)
-
-# --- Tab 2: Dashboard         
-with tab_dash:
-    st.header("📈 Interactive Dashboard – Compare Models")
-
-    model_options = ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"]
-    chosen_models = st.multiselect("בחר מודלים להשוואה", model_options, default=["RandomForest","XGBoost"])
-
-
 
 # --- Tab 4: Prediction
 with tab3:
