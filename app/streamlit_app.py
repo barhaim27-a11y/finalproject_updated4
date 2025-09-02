@@ -64,6 +64,16 @@ show_advanced_eda = st.sidebar.checkbox(
 threshold_global = st.sidebar.slider(
     "Decision Threshold (Global)", 0.0, 1.0, 0.5, 0.01, key="global_threshold"
 )
+# Demo Mode
+demo_mode = st.sidebar.checkbox("Enable Demo Mode (load sample data)", value=False, key="demo_mode")
+
+# Dataset Handling
+dataset_mode = st.sidebar.radio(
+    "Dataset Mode",
+    ["Use Default Dataset", "Replace with Uploaded", "Merge with Uploaded"],
+    index=0,
+    key="dataset_mode"
+)
 
 # ==============================
 # Apply UI Customizations (CSS)
@@ -130,6 +140,12 @@ def safe_predict_proba(model, X):
 # ==============================
 DATA_PATH = "data/parkinsons.csv"
 df = pd.read_csv(DATA_PATH)
+if demo_mode:
+    st.info("Demo Mode Enabled – using sample dataset ✅")
+    df = pd.read_csv(DATA_PATH).sample(50, random_state=42)  # תת-סט קטן להדגמה
+else:
+    df = pd.read_csv(DATA_PATH)
+
 X = df.drop("status", axis=1)
 y = df["status"]
 
@@ -149,6 +165,17 @@ if "best_model" not in st.session_state or "metrics" not in st.session_state:
 
 best_model = st.session_state.best_model
 metrics = st.session_state.metrics
+
+# Model Last Updated
+last_updated_path = "assets/last_updated.txt"
+if os.path.exists(last_updated_path):
+    with open(last_updated_path, "r") as f:
+        last_updated = f.read().strip()
+else:
+    last_updated = "Unknown"
+
+st.sidebar.markdown(f"🕒 **Model Last Updated:** {last_updated}")
+
 
 # ==============================
 # Tabs
@@ -389,11 +416,33 @@ with tab2:
     fig.add_trace(go.Scatter(x=thresholds, y=fpr, mode="lines", name="FPR"))
     fig.update_layout(title=f"KS Curve (KS={ks_stat:.2f})", xaxis_title="Threshold", yaxis_title="Rate")
     st.plotly_chart(fig, use_container_width=True)
+import io
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+if st.button("📄 Download Full Report (PDF)"):
+    pdf_buffer = io.BytesIO()
+    c = canvas.Canvas(pdf_buffer, pagesize=letter)
+    c.setFont("Helvetica", 14)
+    c.drawString(50, 750, "Parkinson’s ML Report")
+
+    c.setFont("Helvetica", 10)
+    c.drawString(50, 720, f"Last Updated: {last_updated}")
+    c.drawString(50, 700, f"Best Model: {best_name}")
+    c.drawString(50, 680, f"Metrics: {json.dumps(metrics[best_name], indent=2)}")
+
+    c.save()
+    st.download_button("📥 Download Report PDF", pdf_buffer.getvalue(),
+                       file_name="report.pdf", mime="application/pdf")
+
 
 # --- Tab 4: Prediction
 with tab3:
     st.header("🔮 Prediction")
     threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
+    "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50,
+                          key="rf_trees_train", help="כמה עצים ייבנה Random Forest. ערך גבוה = יציבות, אך איטי יותר.")
+
 
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
 
@@ -701,6 +750,11 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
             # 🟢 Promote option
+            from datetime import datetime
+            # Update timestamp
+            with open("assets/last_updated.txt", "w") as f:
+            f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
             best_new_model = df_comp.index[0]
             if df_comp["roc_auc"].iloc[0] > old_auc:
                 st.success(f"🎉 המודל החדש {best_new_model} עדיף על המודל הישן!")
@@ -763,8 +817,21 @@ with tab_explain:
         corr_df = corr.reset_index().rename(columns={"index": "Feature", "status": "Correlation"})
         fig = px.bar(corr_df, x="Correlation", y="Feature", orientation="h", title="Correlation with Target")
         st.plotly_chart(fig, use_container_width=True)
-
-
+        tab_explain = st.tabs(["🧠 Explainability"])[0]
+        with tab_explain:
+            st.header("🧠 Model Explainability")
+            try:
+                if hasattr(best_model, "feature_importances_"):
+                    importances = best_model.feature_importances_
+                    feat_df = pd.DataFrame({"Feature": X.columns, "Importance": importances})
+                    feat_df = feat_df.sort_values("Importance", ascending=False).head(15)
+                    
+                    fig = px.bar(feat_df, x="Importance", y="Feature", orientation="h", title="Top Feature Importances")
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("Feature importance not available for this model type.")
+            except Exception as e:
+                st.warning(f"Explainability not available: {e}")
 
 
 # --- Tab 9: About
@@ -795,4 +862,19 @@ with tab_about:
         c.save()
         pdf_buffer.seek(0)
         st.download_button("Download PDF", data=pdf_buffer, file_name="report.pdf", mime="application/pdf")
+        tab_about = st.tabs(["ℹ️ About"])[0]
+with tab_about:
+    st.header("ℹ️ About This Project")
+    st.markdown("""
+    🧠 **Parkinson’s ML App**  
+    Final project for ML & AI course.  
+
+    - Built with Streamlit, Scikit-learn, XGBoost, CatBoost, LightGBM.  
+    - Provides full pipeline: EDA, model comparison, prediction, retraining.  
+    - Supports multilingual interface + custom themes.  
+    - Includes demo mode and model promotion system.  
+
+    👨‍💻 Developed by: *Your Name*  
+    """)
+
 
