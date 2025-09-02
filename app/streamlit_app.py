@@ -540,9 +540,7 @@ if st.button("📄 Download Full Report (PDF)"):
 with tab3:
     st.header("🔮 Prediction")
     threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
-    "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50,key="rf_trees_train", help="כמה עצים ייבנה Random Forest. ערך גבוה = יציבות, אך איטי יותר.")
-
-
+    "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_train", help="כמה עצים ייבנה Random Forest. ערך גבוה = יציבות, אך איטי יותר.")
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
 
     # --- Manual Input
