@@ -165,7 +165,6 @@ tab1, tab_dash, tab2, tab3, tab5, tab4, tab_history, tab_explain, tab_about = st
     "ℹ️ About"
 ])
 
-
 # --- Tab 1: Data & EDA
 with tab1:
     st.header("📊 Data & Exploratory Data Analysis")
