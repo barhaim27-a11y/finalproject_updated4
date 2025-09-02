@@ -198,8 +198,7 @@ with tab1:
             with st.expander(title, expanded=False):
                 st.image(path, use_column_width=True)
 
-# --- Tab 2: Dashboard
-with st.spinner("🚀 Training models... This may take a while"):          
+# --- Tab 2: Dashboard         
 with tab_dash:
     st.header("📈 Interactive Dashboard – Compare Models")
 
@@ -224,6 +223,7 @@ with tab_dash:
         }
 
     if st.button("🚀 Run Comparison"):
+        with st.spinner("🚀 Training models... This may take a while"): 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
         trained_models = {}
