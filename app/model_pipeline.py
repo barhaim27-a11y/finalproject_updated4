@@ -1,14 +1,10 @@
-# app/model_pipeline.py
 import os, json, joblib
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import shap
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score,
-    roc_auc_score, confusion_matrix, roc_curve, precision_recall_curve
+    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 )
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -22,19 +18,10 @@ import xgboost as xgb
 import lightgbm as lgb
 from catboost import CatBoostClassifier
 
-# Paths
-DATA_PATH = os.path.join("data", "parkinsons.csv")
-MODELS_DIR = "models"
-ASSETS_DIR = "assets"
-os.makedirs(MODELS_DIR, exist_ok=True)
-os.makedirs(ASSETS_DIR, exist_ok=True)
-
-# ======================
-# Load data
-# ======================
-df = pd.read_csv(DATA_PATH)
-if "name" in df.columns:
-    df = df.drop(columns=["name"])
+# ==============================
+# Load dataset
+# ==============================
+df = pd.read_csv("data/parkinsons.csv")
 X = df.drop("status", axis=1)
 y = df["status"]
 
@@ -42,15 +29,33 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# ======================
+# ==============================
+# Load config (from Streamlit)
+# ==============================
+config_path = "assets/config.json"
+if os.path.exists(config_path):
+    with open(config_path, "r") as f:
+        config = json.load(f)
+else:
+    config = {
+        "models": ["LogisticRegression","RandomForest","XGBoost"],
+        "params": {"rf_trees": 200, "xgb_lr": 0.1}
+    }
+
+chosen_models = config.get("models", [])
+params = config.get("params", {})
+
+# ==============================
 # Define models
-# ======================
-models = {
+# ==============================
+all_models = {
     "LogisticRegression": Pipeline([
         ("scaler", StandardScaler()),
         ("clf", LogisticRegression(max_iter=500))
     ]),
-    "RandomForest": RandomForestClassifier(n_estimators=200, random_state=42),
+    "RandomForest": RandomForestClassifier(
+        n_estimators=params.get("rf_trees", 200), random_state=42
+    ),
     "SVM": Pipeline([
         ("scaler", StandardScaler()),
         ("clf", SVC(probability=True, kernel="rbf"))
@@ -60,104 +65,49 @@ models = {
         ("clf", KNeighborsClassifier(n_neighbors=5))
     ]),
     "XGBoost": xgb.XGBClassifier(
-        eval_metric="logloss", use_label_encoder=False, random_state=42
+        eval_metric="logloss", random_state=42,
+        learning_rate=params.get("xgb_lr", 0.1)
     ),
     "LightGBM": lgb.LGBMClassifier(random_state=42),
-    "CatBoost": CatBoostClassifier(
-        verbose=0, random_state=42
-    ),
+    "CatBoost": CatBoostClassifier(verbose=0, random_state=42),
     "NeuralNet": Pipeline([
         ("scaler", StandardScaler()),
-        ("clf", MLPClassifier(hidden_layer_sizes=(64, 32),
-                              max_iter=500, random_state=42))
+        ("clf", MLPClassifier(hidden_layer_sizes=(64, 32), max_iter=500, random_state=42))
     ])
 }
 
-# ======================
-# Train + Evaluate
-# ======================
-metrics = {}
-full_results = {}
+# Filter models by chosen list
+models = {name: m for name, m in all_models.items() if name in chosen_models}
 
+# ==============================
+# Train & Evaluate
+# ==============================
+metrics = {}
 for name, model in models.items():
     print(f"Training {name}...")
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1]
 
-    acc = accuracy_score(y_test, y_pred)
-    prec = precision_score(y_test, y_pred)
-    rec = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    roc_auc = roc_auc_score(y_test, y_proba)
-
-    metrics[name] = roc_auc
-    full_results[name] = {
-        "accuracy": acc,
-        "precision": prec,
-        "recall": rec,
-        "f1": f1,
-        "roc_auc": roc_auc
+    metrics[name] = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+        "f1": f1_score(y_test, y_pred),
+        "roc_auc": roc_auc_score(y_test, y_proba)
     }
 
-# ======================
-# Save metrics
-# ======================
-with open(os.path.join(ASSETS_DIR, "metrics.json"), "w") as f:
-    json.dump(full_results, f, indent=4)
+# ==============================
+# Save Results
+# ==============================
+os.makedirs("models", exist_ok=True)
+os.makedirs("assets", exist_ok=True)
 
-# ======================
-# Select best model
-# ======================
-best_name = max(metrics, key=metrics.get)
-best_model = models[best_name]
-joblib.dump(best_model, os.path.join(MODELS_DIR, "best_model.joblib"))
-print(f"✅ Best model: {best_name} (ROC-AUC={metrics[best_name]:.3f})")
+with open("assets/metrics.json", "w") as f:
+    json.dump(metrics, f, indent=4)
 
-# ======================
-# Save plots
-# ======================
-# Confusion Matrix
-cm = confusion_matrix(y_test, best_model.predict(X_test))
-fig, ax = plt.subplots()
-im = ax.imshow(cm, cmap="Blues")
-ax.set_xticks([0,1]); ax.set_yticks([0,1])
-ax.set_xticklabels(["Healthy","Parkinson’s"])
-ax.set_yticklabels(["Healthy","Parkinson’s"])
-plt.colorbar(im)
-for i in range(2):
-    for j in range(2):
-        ax.text(j, i, cm[i,j], ha="center", va="center", color="black")
-plt.title("Confusion Matrix")
-plt.savefig(os.path.join(ASSETS_DIR, "confusion_matrix.png"))
-plt.close(fig)
+# Save best model
+best_name = max(metrics, key=lambda m: metrics[m]["roc_auc"])
+joblib.dump(models[best_name], "models/best_model.joblib")
 
-# ROC Curve
-y_proba = best_model.predict_proba(X_test)[:,1]
-fpr, tpr, _ = roc_curve(y_test, y_proba)
-fig, ax = plt.subplots()
-ax.plot(fpr, tpr, label=f"{best_name} (AUC={metrics[best_name]:.2f})")
-ax.plot([0,1],[0,1],'k--')
-ax.legend()
-plt.title("ROC Curve")
-plt.savefig(os.path.join(ASSETS_DIR, "roc_curve.png"))
-plt.close(fig)
-
-# Precision-Recall Curve
-prec, rec, _ = precision_recall_curve(y_test, y_proba)
-fig, ax = plt.subplots()
-ax.plot(rec, prec, label=best_name)
-ax.legend()
-plt.title("Precision-Recall Curve")
-plt.savefig(os.path.join(ASSETS_DIR, "pr_curve.png"))
-plt.close(fig)
-
-# SHAP Summary
-try:
-    explainer = shap.Explainer(best_model, X_train)
-    shap_values = explainer(X_test)
-    fig = shap.summary_plot(shap_values, X_test, plot_type="bar", show=False)
-    plt.savefig(os.path.join(ASSETS_DIR, "shap_summary.png"))
-    plt.close()
-except Exception as e:
-    print("⚠️ Could not compute SHAP values:", e)
+print(f"✅ Best model: {best_name} (ROC-AUC={metrics[best_name]['roc_auc']:.3f})")
