@@ -362,12 +362,11 @@ with tab_dash:
                     ))
                 ])
             else:
-                continue
-
-                # אימון והערכת ביצועים
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    y_proba = model.predict_proba(X_test)[:, 1]
+                continue# אימון והערכת ביצועים
+                
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                y_proba = model.predict_proba(X_test)[:, 1]
 
     acc = accuracy_score(y_test, y_pred)
     prec = precision_score(y_test, y_pred)
