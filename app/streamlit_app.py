@@ -232,182 +232,146 @@ with tab1:
 with tab_dash:
     st.header("📈 Interactive Dashboard – Compare Models")
 
-    model_options = ["LogisticRegression","RandomForest","SVM","KNN","XGBoost","LightGBM","CatBoost","NeuralNet"]
-    chosen_models = st.multiselect("בחר מודלים להשוואה", model_options, default=["RandomForest","XGBoost"])
+    model_options = [
+        "LogisticRegression","RandomForest","SVM",
+        "KNN","XGBoost","LightGBM","CatBoost","NeuralNet"
+    ]
+    chosen_models = st.multiselect(
+        "בחר מודלים להשוואה", 
+        model_options, 
+        default=["RandomForest","XGBoost"]
+    )
     
     st.subheader("⚙️ Hyperparameters")
     params = {}
+
     if "LogisticRegression" in chosen_models:
         params["LogisticRegression"] = {
             "C": st.slider("LogReg: Regularization C", 0.01, 10.0, 1.0, 0.1, key="logreg_c_dash"),
             "max_iter": st.slider("LogReg: Max Iterations", 100, 2000, 500, 100, key="logreg_iter_dash")
         }
-        if "RandomForest" in chosen_models:
-            params["RandomForest"] = {
-                "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_dash"),
-                "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_dash"),
-                "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_dash"),
-                "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_dash")
-            }
-            if "XGBoost" in chosen_models:
-                params["XGBoost"] = {
-                    "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_dash"),
-                    "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_dash"),
-                    "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_dash"),
-                    "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_dash"),
-                    "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_dash")
-                }
-                if "LightGBM" in chosen_models:
-                    params["LightGBM"] = {
-                        "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_dash"),
-                        "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_dash"),
-                        "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_dash"),
-                        "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_dash")
-                    }
-                    if "CatBoost" in chosen_models:
-                        params["CatBoost"] = {
-                            "iterations": st.slider("CatBoost: Iterations", 100, 2000, 500, 100, key="cat_iters_dash"),
-                            "depth": st.slider("CatBoost: Depth", 2, 12, 6, key="cat_depth_dash"),
-                            "learning_rate": st.slider("CatBoost: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="cat_lr_dash")
-                        }
-                        if "SVM" in chosen_models:
-                            params["SVM"] = {
-                                "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_dash"),
-                                "kernel": st.selectbox("SVM: Kernel", ["rbf", "linear", "poly"], index=0, key="svm_kernel_dash"),
-                                "gamma": st.selectbox("SVM: Gamma", ["scale", "auto"], index=0, key="svm_gamma_dash")
-                            }
-                            if "KNN" in chosen_models:
-                                params["KNN"] = {
-                                    "n_neighbors": st.slider("KNN: Neighbors", 1, 20, 5, key="knn_neighbors_dash"),
-                                    "weights": st.selectbox("KNN: Weights", ["uniform", "distance"], index=0, key="knn_weights_dash")
-                                }
-                                if "NeuralNet" in chosen_models:
-                                    params["NeuralNet"] = {
-                                        "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_dash"),"activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_dash"),
-                                        "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
-                                    }
+
+    if "RandomForest" in chosen_models:
+        params["RandomForest"] = {
+            "n_estimators": st.slider("RF: Number of Trees", 50, 500, 200, 50, key="rf_trees_dash"),
+            "max_depth": st.slider("RF: Max Depth", 2, 20, 5, key="rf_depth_dash"),
+            "min_samples_split": st.slider("RF: Min Samples Split", 2, 20, 2, key="rf_split_dash"),
+            "min_samples_leaf": st.slider("RF: Min Samples Leaf", 1, 20, 1, key="rf_leaf_dash")
+        }
+
+    if "XGBoost" in chosen_models:
+        params["XGBoost"] = {
+            "learning_rate": st.slider("XGB: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="xgb_lr_dash"),
+            "n_estimators": st.slider("XGB: Estimators", 50, 500, 200, 50, key="xgb_estimators_dash"),
+            "max_depth": st.slider("XGB: Max Depth", 2, 20, 6, key="xgb_depth_dash"),
+            "subsample": st.slider("XGB: Subsample", 0.5, 1.0, 1.0, 0.05, key="xgb_subsample_dash"),
+            "colsample_bytree": st.slider("XGB: Colsample by Tree", 0.5, 1.0, 1.0, 0.05, key="xgb_colsample_dash")
+        }
+
+    if "LightGBM" in chosen_models:
+        params["LightGBM"] = {
+            "n_estimators": st.slider("LGBM: Estimators", 50, 500, 200, 50, key="lgb_estimators_dash"),
+            "learning_rate": st.slider("LGBM: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="lgb_lr_dash"),
+            "num_leaves": st.slider("LGBM: Num Leaves", 10, 200, 31, key="lgb_leaves_dash"),
+            "max_depth": st.slider("LGBM: Max Depth", -1, 20, -1, key="lgb_depth_dash")
+        }
+
+    if "CatBoost" in chosen_models:
+        params["CatBoost"] = {
+            "iterations": st.slider("CatBoost: Iterations", 100, 2000, 500, 100, key="cat_iters_dash"),
+            "depth": st.slider("CatBoost: Depth", 2, 12, 6, key="cat_depth_dash"),
+            "learning_rate": st.slider("CatBoost: Learning Rate", 0.01, 0.5, 0.1, 0.01, key="cat_lr_dash")
+        }
+
+    if "SVM" in chosen_models:
+        params["SVM"] = {
+            "C": st.slider("SVM: Regularization C", 0.01, 10.0, 1.0, 0.1, key="svm_c_dash"),
+            "kernel": st.selectbox("SVM: Kernel", ["rbf", "linear", "poly"], index=0, key="svm_kernel_dash"),
+            "gamma": st.selectbox("SVM: Gamma", ["scale", "auto"], index=0, key="svm_gamma_dash")
+        }
+
+    if "KNN" in chosen_models:
+        params["KNN"] = {
+            "n_neighbors": st.slider("KNN: Neighbors", 1, 20, 5, key="knn_neighbors_dash"),
+            "weights": st.selectbox("KNN: Weights", ["uniform", "distance"], index=0, key="knn_weights_dash")
+        }
+
+    if "NeuralNet" in chosen_models:
+        params["NeuralNet"] = {
+            "hidden_layer_sizes": st.text_input("NN: Hidden Layers (comma-separated)", "64,32", key="nn_layers_dash"),
+            "activation": st.selectbox("NN: Activation", ["relu", "tanh", "logistic"], index=0, key="nn_activation_dash"),
+            "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
+        }
+
+    # 🚀 Run Comparison
     if st.button("🚀 Run Comparison"):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
+
         trained_models = {}
         metrics_comp = {}
-         for m in chosen_models:
+
+        for m in chosen_models:
+            # --- כאן נכנס הקוד של בניית המודל (כמו שכבר כתבת)
+            # דוגמא: 
             if m == "LogisticRegression":
                 model = Pipeline([
                     ("scaler", StandardScaler()),
                     ("clf", LogisticRegression(
-                        C=params.get(m, {}).get("C", 1.0),
-                        max_iter=params.get(m, {}).get("max_iter", 500)
+                        C=params[m]["C"],
+                        max_iter=params[m]["max_iter"]
                     ))
                 ])
-            elif m == "RandomForest":
-                model = RandomForestClassifier(
-                    n_estimators=params.get(m, {}).get("n_estimators", 200),
-                    max_depth=params.get(m, {}).get("max_depth", None),
-                    min_samples_split=params.get(m, {}).get("min_samples_split", 2),
-                    min_samples_leaf=params.get(m, {}).get("min_samples_leaf", 1),
-                    random_state=42
-                )
-            elif m == "XGBoost":
-                model = xgb.XGBClassifier(
-                    eval_metric="logloss",
-                    n_estimators=params.get(m, {}).get("n_estimators", 200),
-                    learning_rate=params.get(m, {}).get("learning_rate", 0.1),
-                    max_depth=params.get(m, {}).get("max_depth", 6),
-                    subsample=params.get(m, {}).get("subsample", 1.0),
-                    colsample_bytree=params.get(m, {}).get("colsample_bytree", 1.0),
-                    random_state=42
-                )
-            elif m == "LightGBM":
-                model = lgb.LGBMClassifier(
-                    n_estimators=params.get(m, {}).get("n_estimators", 200),
-                    learning_rate=params.get(m, {}).get("learning_rate", 0.1),
-                    num_leaves=params.get(m, {}).get("num_leaves", 31),
-                    max_depth=params.get(m, {}).get("max_depth", -1),
-                    random_state=42
-                )
-            elif m == "CatBoost":
-                model = CatBoostClassifier(
-                    iterations=params.get(m, {}).get("iterations", 200),
-                    depth=params.get(m, {}).get("depth", 6),
-                    learning_rate=params.get(m, {}).get("learning_rate", 0.1),
-                    verbose=0,
-                    random_state=42
-                )
-            elif m == "SVM":
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("clf", SVC(
-                        C=params.get(m, {}).get("C", 1.0),
-                        kernel=params.get(m, {}).get("kernel", "rbf"),
-                        gamma=params.get(m, {}).get("gamma", "scale"),
-                        probability=True
-                    ))
-                ])
-            elif m == "KNN":
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("clf", KNeighborsClassifier(
-                        n_neighbors=params.get(m, {}).get("n_neighbors", 5),
-                        weights=params.get(m, {}).get("weights", "uniform")
-                    ))
-                ])
-            elif m == "NeuralNet":
-                hidden_layers = tuple(map(int, params.get(m, {}).get("hidden_layer_sizes", "64,32").split(",")))
-                model = Pipeline([
-                    ("scaler", StandardScaler()),
-                    ("clf", MLPClassifier(
-                        hidden_layer_sizes=hidden_layers,
-                        activation=params.get(m, {}).get("activation", "relu"),
-                        max_iter=params.get(m, {}).get("max_iter", 500),
-                        random_state=42
-                    ))
-                ])
-            else:
-                continue# אימון והערכת ביצועים
-                
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
-                y_proba = model.predict_proba(X_test)[:, 1]
-                
-                acc = accuracy_score(y_test, y_pred)
-                prec = precision_score(y_test, y_pred)
-                rec = recall_score(y_test, y_pred)
-                f1 = f1_score(y_test, y_pred)
-                auc_val = roc_auc_score(y_test, y_proba)
-                
-                trained_models[m] = model
-                metrics_comp[m] = {
-                    "accuracy": acc,
-                    "precision": prec,
-                    "recall": rec,
-                    "f1": f1,
-                    "roc_auc": auc_val
-                }
-                
-                st.subheader("📊 Metrics Comparison")
-                df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
-                df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
-                df_comp_display = df_comp.copy()
-                df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
-                st.dataframe(df_comp_display)
-                
-                st.subheader("ROC Curves")
-                fig = go.Figure()
-                for m, model in trained_models.items():
-                    y_proba = model.predict_proba(X_test)[:,1]
-                    fpr, tpr, _ = roc_curve(y_test, y_proba)
-                    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
-                    fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    st.subheader("Precision-Recall Curves")
-                    fig = go.Figure()
-                    for m, model in trained_models.items():
-                        y_proba = model.predict_proba(X_test)[:,1]
-                        prec, rec, _ = precision_recall_curve(y_test, y_proba)
-                        fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
-                        st.plotly_chart(fig, use_container_width=True)
-            
+            # ... שאר המודלים כמו אצלך ...
+
+            # אימון
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            y_proba = model.predict_proba(X_test)[:, 1]
+
+            acc = accuracy_score(y_test, y_pred)
+            prec = precision_score(y_test, y_pred)
+            rec = recall_score(y_test, y_pred)
+            f1 = f1_score(y_test, y_pred)
+            auc_val = roc_auc_score(y_test, y_proba)
+
+            trained_models[m] = model
+            metrics_comp[m] = {
+                "accuracy": acc,
+                "precision": prec,
+                "recall": rec,
+                "f1": f1,
+                "roc_auc": auc_val
+            }
+
+        # --- תצוגת תוצאות
+        st.subheader("📊 Metrics Comparison")
+        df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
+        df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
+        df_comp_display = df_comp.copy()
+        df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
+        st.dataframe(df_comp_display)
+
+        # ROC Curves
+        st.subheader("ROC Curves")
+        fig = go.Figure()
+        for m, model in trained_models.items():
+            y_proba = model.predict_proba(X_test)[:,1]
+            fpr, tpr, _ = roc_curve(y_test, y_proba)
+            fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"{m} (AUC={metrics_comp[m]['roc_auc']:.2f})"))
+        fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Precision-Recall Curves
+        st.subheader("Precision-Recall Curves")
+        fig = go.Figure()
+        for m, model in trained_models.items():
+            y_proba = model.predict_proba(X_test)[:,1]
+            prec, rec, _ = precision_recall_curve(y_test, y_proba)
+            fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
+        st.plotly_chart(fig, use_container_width=True)
+
        
 
 
