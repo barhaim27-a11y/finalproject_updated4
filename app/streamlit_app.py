@@ -769,11 +769,20 @@ with tab_explain:
 
 # --- Tab 9: About
 with tab_about:
-    st.header("ℹ️ About")
+    st.header("ℹ️ About This App")
     st.markdown("""
-    **Parkinson’s ML App**  
-    This app demonstrates prediction and evaluation of Parkinson’s disease using ML models.  
-    Features: EDA, Model Training, Comparison, Prediction, Evaluation, Explainability, History, Export to PDF.  
+    ### Parkinson’s ML App
+    🧠 מערכת חכמה לניבוי מחלת פרקינסון על בסיס דאטה רפואי.
+
+    **יכולות מרכזיות:**
+    - ניתוח EDA אינטראקטיבי  
+    - דאשבורד להשוואת מודלים  
+    - ניבוי ידני או על קבצים  
+    - אימון מחדש והשוואה למודל קיים  
+    - היסטוריית אימונים + אפשרות Rollback  
+    - ייצוא דוחות (Excel/PDF)
+
+    👨‍💻 פותח במסגרת פרויקט סיום קורס ML & AI ב־Afeka.
     """)
 
     if st.button("📄 Download PDF Report"):
