@@ -324,23 +324,23 @@ with tab2:
     st.plotly_chart(fig, use_container_width=True)
 
 
-
 # --- Tab 4: Prediction
 with tab3:
     st.header("🔮 Prediction")
     threshold = st.slider("Decision Threshold", 0.0, 1.0, threshold_global, 0.01)
 
+    # ✅ בחירת מודל לניבוי
+    available_models = {"Best Model": best_model}
+    if "trained_models" in st.session_state:
+        available_models.update(st.session_state.trained_models)
+
+    model_choice = st.selectbox("בחר מודל לניבוי", list(available_models.keys()))
+    model = available_models[model_choice]
+
     option = st.radio("Choose input type:", ["Manual Input","Upload CSV/Excel"])
-
-    # --- Manual Input
-    if option == "Manual Input":
-        inputs = {col: st.number_input(col, float(X[col].mean())) for col in X.columns}
-        sample = pd.DataFrame([inputs])
-
-        if st.button("Predict Sample"):
-            prob = safe_predict_proba(best_model, sample)[0,1]
-            pred = int(prob >= threshold)
-
+    ...
+    # במקום לקרוא ל-best_model → נשתמש ב-model
+    prob = safe_predict_proba(model, sample)[0,1]
             # תצוגה ידידותית
             st.subheader("🧾 Prediction Result")
             if pred == 1:
@@ -485,10 +485,13 @@ with tab4:
     file = st.file_uploader("Upload CSV for retraining", type=["csv"], key="newtrain")
     if file:
         new_df = pd.read_csv(file)
-        st.write("New Data Preview:", new_df.head())
+        st.write("📂 New Data Preview:", new_df.head())
 
         if st.button("Retrain Models"):
-            new_df.to_csv("data/new_train.csv", index=False)
+            # ✅ שילוב הדאטה החדש עם המקורי
+            combined_df = pd.concat([df, new_df], ignore_index=True)
+            combined_df.to_csv("data/combined_train.csv", index=False)
+
             config = {"models": model_choices, "params": {"rf_trees": rf_trees, "xgb_lr": xgb_lr}}
             os.makedirs("assets", exist_ok=True)
             with open("assets/config.json","w") as f:
@@ -497,7 +500,43 @@ with tab4:
 
             with open("assets/metrics.json","r") as f:
                 new_metrics = json.load(f)
-            comp_df = pd.DataFrame(new_metrics).T.reset_index().rename(columns={"index":"Model"})
+
+            # ✅ שמירה להשוואה
+            st.session_state.new_metrics = new_metrics
+            st.session_state.new_best_model = joblib.load("models/best_model.joblib")
+
             st.subheader("📊 New Training Results")
-            st.dataframe(comp_df)
-            st.success("✅ Models retrained! See results above.")
+            comp_df = pd.DataFrame(new_metrics).T.reset_index().rename(columns={"index":"Model"})
+            comp_df = comp_df.sort_values("roc_auc", ascending=False)
+            st.dataframe(comp_df.style.highlight_max(axis=0, color="lightgreen"))
+
+            # ✅ השוואה מול המודל הישן
+            old_auc = max(metrics.values(), key=lambda m: m["roc_auc"])["roc_auc"]
+            new_auc = max(new_metrics.values(), key=lambda m: m["roc_auc"])["roc_auc"]
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Old Best ROC-AUC", f"{old_auc:.3f}")
+            with col2:
+                st.metric("New Best ROC-AUC", f"{new_auc:.3f}")
+
+            if new_auc > old_auc:
+                st.success("🎉 המודל החדש עדיף על המודל הישן!")
+                if st.button("🚀 Promote New Model"):
+                    shutil.copy("models/best_model.joblib", "models/best_model_promoted.joblib")
+                    with open("assets/metrics.json","w") as f:
+                        json.dump(new_metrics, f)
+                    st.success("✅ New model promoted as best model!")
+
+            # ✅ גרף השוואת ROC
+            st.subheader("ROC Curve – Old vs New Best Model")
+            y_pred_prob_old = safe_predict_proba(best_model, X)[:,1]
+            y_pred_prob_new = safe_predict_proba(st.session_state.new_best_model, X)[:,1]
+            fpr_old, tpr_old, _ = roc_curve(y, y_pred_prob_old)
+            fpr_new, tpr_new, _ = roc_curve(y, y_pred_prob_new)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=fpr_old, y=tpr_old, mode="lines", name="Old Best"))
+            fig.add_trace(go.Scatter(x=fpr_new, y=tpr_new, mode="lines", name="New Best"))
+            fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
+            st.plotly_chart(fig, use_container_width=True)
+
