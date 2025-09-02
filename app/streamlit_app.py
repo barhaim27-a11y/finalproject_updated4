@@ -232,6 +232,7 @@ with tab1:
 with tab_dash:
     st.header("📈 Interactive Dashboard – Compare Models")
 
+    # --- בחירת מודלים ---
     model_options = [
         "LogisticRegression","RandomForest","SVM",
         "KNN","XGBoost","LightGBM","CatBoost","NeuralNet"
@@ -242,6 +243,7 @@ with tab_dash:
         default=["RandomForest","XGBoost"]
     )
     
+    # --- היפר-פרמטרים ---
     st.subheader("⚙️ Hyperparameters")
     params = {}
 
@@ -303,7 +305,7 @@ with tab_dash:
             "max_iter": st.slider("NN: Max Iterations", 100, 2000, 500, 100, key="nn_iter_dash")
         }
 
-    # 🚀 Run Comparison
+    # --- הפעלה ---
     if st.button("🚀 Run Comparison"):
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
@@ -313,8 +315,8 @@ with tab_dash:
         metrics_comp = {}
 
         for m in chosen_models:
-            # --- כאן נכנס הקוד של בניית המודל (כמו שכבר כתבת)
-            # דוגמא: 
+            model = None
+
             if m == "LogisticRegression":
                 model = Pipeline([
                     ("scaler", StandardScaler()),
@@ -323,29 +325,92 @@ with tab_dash:
                         max_iter=params[m]["max_iter"]
                     ))
                 ])
-            # ... שאר המודלים כמו אצלך ...
+            elif m == "RandomForest":
+                model = RandomForestClassifier(
+                    n_estimators=params[m]["n_estimators"],
+                    max_depth=params[m]["max_depth"],
+                    min_samples_split=params[m]["min_samples_split"],
+                    min_samples_leaf=params[m]["min_samples_leaf"],
+                    random_state=42
+                )
+            elif m == "XGBoost":
+                model = xgb.XGBClassifier(
+                    eval_metric="logloss",
+                    n_estimators=params[m]["n_estimators"],
+                    learning_rate=params[m]["learning_rate"],
+                    max_depth=params[m]["max_depth"],
+                    subsample=params[m]["subsample"],
+                    colsample_bytree=params[m]["colsample_bytree"],
+                    random_state=42
+                )
+            elif m == "LightGBM":
+                model = lgb.LGBMClassifier(
+                    n_estimators=params[m]["n_estimators"],
+                    learning_rate=params[m]["learning_rate"],
+                    num_leaves=params[m]["num_leaves"],
+                    max_depth=params[m]["max_depth"],
+                    random_state=42
+                )
+            elif m == "CatBoost":
+                model = CatBoostClassifier(
+                    iterations=params[m]["iterations"],
+                    depth=params[m]["depth"],
+                    learning_rate=params[m]["learning_rate"],
+                    verbose=0,
+                    random_state=42
+                )
+            elif m == "SVM":
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("clf", SVC(
+                        C=params[m]["C"],
+                        kernel=params[m]["kernel"],
+                        gamma=params[m]["gamma"],
+                        probability=True
+                    ))
+                ])
+            elif m == "KNN":
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("clf", KNeighborsClassifier(
+                        n_neighbors=params[m]["n_neighbors"],
+                        weights=params[m]["weights"]
+                    ))
+                ])
+            elif m == "NeuralNet":
+                hidden_layers = tuple(map(int, params[m]["hidden_layer_sizes"].split(",")))
+                model = Pipeline([
+                    ("scaler", StandardScaler()),
+                    ("clf", MLPClassifier(
+                        hidden_layer_sizes=hidden_layers,
+                        activation=params[m]["activation"],
+                        max_iter=params[m]["max_iter"],
+                        random_state=42
+                    ))
+                ])
 
-            # אימון
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-            y_proba = model.predict_proba(X_test)[:, 1]
+            # --- אימון והערכת ביצועים ---
+            if model is not None:
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                y_proba = model.predict_proba(X_test)[:, 1]
 
-            acc = accuracy_score(y_test, y_pred)
-            prec = precision_score(y_test, y_pred)
-            rec = recall_score(y_test, y_pred)
-            f1 = f1_score(y_test, y_pred)
-            auc_val = roc_auc_score(y_test, y_proba)
+                acc = accuracy_score(y_test, y_pred)
+                prec = precision_score(y_test, y_pred)
+                rec = recall_score(y_test, y_pred)
+                f1 = f1_score(y_test, y_pred)
+                auc_val = roc_auc_score(y_test, y_proba)
 
-            trained_models[m] = model
-            metrics_comp[m] = {
-                "accuracy": acc,
-                "precision": prec,
-                "recall": rec,
-                "f1": f1,
-                "roc_auc": auc_val
-            }
+                trained_models[m] = model
+                metrics_comp[m] = {
+                    "accuracy": acc,
+                    "precision": prec,
+                    "recall": rec,
+                    "f1": f1,
+                    "roc_auc": auc_val
+                }
 
-        # --- תצוגת תוצאות
+        # --- טבלת השוואה ---
         st.subheader("📊 Metrics Comparison")
         df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
         df_comp.insert(0, "Rank", range(1, len(df_comp)+1))
@@ -353,7 +418,7 @@ with tab_dash:
         df_comp_display.iloc[0, df_comp_display.columns.get_loc("Rank")] = "🏆 1"
         st.dataframe(df_comp_display)
 
-        # ROC Curves
+        # --- ROC Curves ---
         st.subheader("ROC Curves")
         fig = go.Figure()
         for m, model in trained_models.items():
@@ -363,7 +428,7 @@ with tab_dash:
         fig.add_trace(go.Scatter(x=[0,1], y=[0,1], mode="lines", line=dict(dash="dash"), name="Random"))
         st.plotly_chart(fig, use_container_width=True)
 
-        # Precision-Recall Curves
+        # --- Precision-Recall Curves ---
         st.subheader("Precision-Recall Curves")
         fig = go.Figure()
         for m, model in trained_models.items():
@@ -371,9 +436,6 @@ with tab_dash:
             prec, rec, _ = precision_recall_curve(y_test, y_proba)
             fig.add_trace(go.Scatter(x=rec, y=prec, mode="lines", name=m))
         st.plotly_chart(fig, use_container_width=True)
-
-       
-
 
 # --- Tab 3: Models
 with tab2:
