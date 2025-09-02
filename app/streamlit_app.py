@@ -269,6 +269,10 @@ with tab_dash:
 
             trained_models[m] = model
             metrics_comp[m] = {"accuracy": acc, "precision": prec, "recall": rec, "f1": f1, "roc_auc": auc_val}
+            with st.spinner("🚀 Training models... This may take a while"):
+            # כאן הקוד הקיים של האימון
+        st.success("✅ Training finished!")
+
 
         st.subheader("📊 Metrics Comparison")
         df_comp = pd.DataFrame(metrics_comp).T.sort_values("roc_auc", ascending=False)
