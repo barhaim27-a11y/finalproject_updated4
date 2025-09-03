@@ -117,6 +117,4 @@ Typical ROC-AUC scores:
 - Deploy as a cloud service (e.g., FastAPI + Docker + Streamlit Cloud)  
 
 ---
-
-✍️ **Authors:** Afeka ML & AI Final Project Team  
-📅 **Year:** 2025  
+ 
